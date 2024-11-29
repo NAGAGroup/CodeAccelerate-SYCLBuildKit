@@ -1,0 +1,52 @@
+[project]
+authors = ["Jack Myers <jack.myers@intel.com>"]
+channels = ["conda-forge"]
+description = "Add a short description here"
+name = "onemkl"
+platforms = ["linux-64"]
+version = "20.0.0"
+
+[target.linux-64.dependencies]
+cuda = ">=12.6.2,<13"
+python = ">=3.13.0,<4"
+pkg-config = ">=0.29.2,<0.30"
+pkgconfig = ">=1.5.5,<2"
+sysroot_linux-64 = ">=2.34"
+intel-opencl-rt = ">=2025.0.0,<2026"
+intel-fortran-rt = ">=2025.0.0,<2026"
+intel-opencl-fpga-emu-rt = ">=2025.0.0,<2026"
+clinfo = ">=3.0.21.2.21,<4"
+mkl-devel = ">=2025.0.0,<2026"
+tbb-devel = ">=2022.0.0,<2023"
+
+[target.linux-64.build-dependencies]
+cmake = ">=3.30.5,<4"
+pkgconfig = ">=1.5.5,<2"
+pkg-config = ">=0.29.2,<0.30"
+python = ">=3.13.0,<4"
+cxx-compiler = ">=1.8.0,<2"
+c-compiler = ">=1.8.0,<2"
+git = ">=2.47.0,<3"
+ninja = ">=1.12.1,<2"
+wget = ">=1.21.4,<2"
+ccache = ">=4.10.1,<5"
+lld = ">=19.1.3,<20"
+
+[target.linux-64.host-dependencies]
+cuda = ">=12.6.2,<13"
+pkg-config = ">=0.29.2,<0.30"
+pkgconfig = ">=1.5.5,<2"
+sysroot_linux-64 = ">=2.34"
+mkl-devel = ">=2025.0.0,<2026"
+tbb-devel = ">=2022.0.0,<2023"
+
+[target.linux-64.activation]
+scripts = ["../../activation/linux.sh", "../../activation/dpcpp.sh"]
+env = { INSTALL_PREFIX = "$HOME/dpcpp" }
+
+[target.linux-64.tasks]
+configure = { cmd = "bash scripts/configure.sh" }
+build = { cmd = "bash scripts/build.sh", depends-on = ["configure"] }
+install = { cmd = "bash scripts/install.sh", depends-on = ["build"] }
+
+[dependencies]

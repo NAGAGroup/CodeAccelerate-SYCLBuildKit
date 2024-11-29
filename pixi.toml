@@ -1,0 +1,13 @@
+[project]
+authors = ["Jack Myers <jackhyers97@gmail.com>"]
+channels = ["conda-forge"]
+description = "Add a short description here"
+name = "codeaccelerate-sycl"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+install-llvm = "pixi run --manifest-path llvm/pixi.toml configure && pixi run --manifest-path llvm/pixi.toml install"
+
+[activation]
+env = { PROJECT_ROOT = "$PIXI_PROJECT_ROOT" }
