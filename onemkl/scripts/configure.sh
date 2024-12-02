@@ -2,10 +2,8 @@
 
 set -e
 
-cd "$PROJECT_ROOT" || exit
-cd onemkl || exit
-mkdir -p build
-cd build || exit
+mkdir -p "$SUBPROJECT_ROOT/onemkl/build"
+cd "$SUBPROJECT_ROOT/onemkl/build"
 
 rm -f CMakeCache.txt
 
@@ -20,4 +18,5 @@ cmake .. -G Ninja \
   -DBUILD_EXAMPLES=False \
   -DTARGET_DOMAINS="blas lapack" \
   -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-  -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+  -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+  $CMAKE_ARGS

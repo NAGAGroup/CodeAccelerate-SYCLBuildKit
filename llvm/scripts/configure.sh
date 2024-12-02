@@ -2,76 +2,55 @@
 
 set -e
 
+if [[ ${CONDA_BUILD_CROSS_COMPILATION:-0} == "1" ]]; then
+  echo "Cross-compilation is not supported at the moment."
+  exit 1
+fi
+
 intel_urt="$SUBPROJECT_ROOT/intel-urt"
 if [ -f "$LLVM_SYCL_SOURCE_DIR/llvm/CMakeLists.txt" ]; then
-  find "$LLVM_SYCL_SOURCE_DIR" -name "CMakeCache.txt" -exec rm {} ";"
+  mkdir -p "$LLVM_SYCL_BUILD_DIR"
+  find "$LLVM_SYCL_BUILD_DIR" -name "CMakeCache.txt" -exec rm {} ";"
 else
   rm -rf "$intel_urt"
   rm -rf "$LLVM_SYCL_SOURCE_DIR"
   git submodule update --init --recursive
-  cp "$SUBPROJECT_ROOT/injected-files/urt-cuda.cmake" "$intel_urt/source/adapters/cuda/CMakeLists.txt"
 fi
 
-mkdir -p "$LLVM_SYCL_SOURCE_DIR/build/bin"
-mkdir -p "$LLVM_SYCL_SOURCE_DIR/build/NATIVE/bin"
-clangxx_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-toolchain=$BUILD_PREFIX --target=$CONDA_TOOLCHAIN_HOST $CXXFLAGS"
-clang_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-toolchain=$BUILD_PREFIX --target=$CONDA_TOOLCHAIN_HOST $CFLAGS"
-echo "$clangxx_flags" >"$LLVM_SYCL_SOURCE_DIR/build/NATIVE/bin/clang++.cfg"
-echo "$LDFLAGS" >>"$LLVM_SYCL_SOURCE_DIR/build/NATIVE/bin/clang++.cfg"
-echo "$clang_flags" >"$LLVM_SYCL_SOURCE_DIR/build/NATIVE/bin/clang.cfg"
-echo "$LDFLAGS" >>"$LLVM_SYCL_SOURCE_DIR/build/NATIVE/bin/clang.cfg"
-echo "$clangxx_flags" >"$LLVM_SYCL_SOURCE_DIR/build/bin/clang++.cfg"
-echo "$LDFLAGS" >>"$LLVM_SYCL_SOURCE_DIR/build/bin/clang++.cfg"
-echo "$clang_flags" >"$LLVM_SYCL_SOURCE_DIR/build/bin/clang.cfg"
-echo "$LDFLAGS" >>"$LLVM_SYCL_SOURCE_DIR/build/bin/clang.cfg"
+clangxx_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-toolchain=$PREFIX --target=$CONDA_TOOLCHAIN_HOST -I$CONDA_BUILD_SYSROOT/usr/include -isystem $PREFIX/include -isystem $CONDA_CUDA_ROOT/include"
+clang_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-toolchain=$PREFIX --target=$CONDA_TOOLCHAIN_HOST -I$CONDA_BUILD_SYSROOT/usr/include -isystem $PREFIX/include -isystem $CONDA_CUDA_ROOT/include"
+clang_ldflags="-Wl,-rpath,$LLVM_SYCL_BUILD_DIR/lib -Wl,-rpath-link,$LLVM_SYCL_BUILD_DIR/lib -L $LLVM_SYCL_BUILD_DIR/lib -Wl,-rpath,$PREFIX/lib -Wl,-rpath-link,$PREFIX/lib -L $PREFIX/lib -L $CONDA_CUDA_ROOT/lib -L $CONDA_CUDA_ROOT/lib/stubs -L $CONDA_BUILD_SYSROOT/usr/lib"
 
-cmake_cmd="cmake -G Ninja ../llvm $CMAKE_ARGS \
-  -DCMAKE_TOOLCHAIN_FILE='$PROJECT_ROOT/toolchains/linux.cmake' \
-  -DLLVM_HOST_TRIPLE='$CONDA_TOOLCHAIN_HOST' \
-  -DSYCL_UR_USE_FETCH_CONTENT=OFF \
-  -DSYCL_UR_SOURCE_DIR='$intel_urt' \
-  -DLLVM_LIBDIR_SUFFIX='' \
-  -DLLVM_ENABLE_BACKTRACES=ON \
-  -DLLVM_ENABLE_DUMP=ON \
-  -DLLVM_ENABLE_LIBEDIT=OFF \
-  -DLLVM_ENABLE_LIBXML2=FORCE_ON \
-  -DLLVM_ENABLE_RTTI=ON \
-  -DLLVM_ENABLE_ZLIB=FORCE_ON \
-  -DLLVM_ENABLE_ZSTD=FORCE_ON \
-  -DLLVM_USE_STATIC_ZSTD=FORCE_ON \
-  -DLLVM_INCLUDE_UTILS=ON \
-  -DLLVM_INSTALL_UTILS=ON \
-  -DLLVM_ENABLE_ASSERTIONS=ON \
-  -DLLVM_TARGETS_TO_BUILD='X86;NVPTX' \
-  -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD='SPIRV' \
-  -DLLVM_EXTERNAL_PROJECTS='sycl;llvm-spirv;opencl;xpti;xptifw;libdevice;sycl-jit' \
-  -DLLVM_EXTERNAL_OPENCL_SOURCE_DIR='$LLVM_SYCL_SOURCE_DIR/clang' \
-  -DLLVM_EXTERNAL_SYCL_SOURCE_DIR='$LLVM_SYCL_SOURCE_DIR/sycl' \
-  -DLLVM_EXTERNAL_LLVM_SPIRV_SOURCE_DIR='$LLVM_SYCL_SOURCE_DIR/llvm-spirv' \
-  -DLLVM_EXTERNAL_OPENCL_SOURCE_DIR='$LLVM_SYCL_SOURCE_DIR/opencl' \
-  -DLLVM_EXTERNAL_XPTI_SOURCE_DIR='$LLVM_SYCL_SOURCE_DIR/xpti' \
-  -DXPTI_SOURCE_DIR='$LLVM_SYCL_SOURCE_DIR/xpti' \
-  -DLLVM_ENABLE_PROJECTS='clang;clang-tools-extra;libclc;lld;sycl;llvm-spirv;opencl;xpti;xptifw;libdevice;sycl-jit;compiler-rt;openmp' \
-  -DSYCL_BUILD_PI_HIP_PLATFORM='' \
-  -DLLVM_BUILD_TOOLS=ON \
-  -DSYCL_ENABLE_WERROR=OFF \
-  -DCMAKE_INSTALL_PREFIX='$INSTALL_PREFIX' \
-  -DSYCL_INCLUDE_TESTS=ON \
-  -DLLVM_ENABLE_DOXYGEN=OFF \
-  -DLLVM_ENABLE_SPHINX=FALSE \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DSYCL_ENABLE_XPTI_TRACING=ON \
-  -DLLVM_ENABLE_LLD=ON \
-  -DXPTI_ENABLE_WERROR=OFF \
-  -DSYCL_CLANG_EXTRA_FLAGS='$clangxx_flags' \
-  -DSYCL_ENABLE_BACKENDS='opencl;native_cpu;level_zero;cuda' \
-  -DSYCL_ENABLE_EXTENSION_JIT=ON \
-  -DSYCL_ENABLE_MAJOR_RELEASE_PREVIEW_LIB=ON \
-  -DLIBCLC_TARGETS_TO_BUILD='nvptx64--nvidiacl' \
-  -DLIBCLC_GENERATE_REMANGLED_VARIANTS=ON \
-  -DLIBCLC_NATIVECPU_HOST_TARGET=ON \
-  -DLLVM_ENABLE_RTTI=ON"
+mkdir -p "$LLVM_SYCL_BUILD_DIR/bin"
+echo "$clangxx_flags" >"$LLVM_SYCL_BUILD_DIR/bin/clang++.cfg"
+echo "$clangxx_flags" >"$LLVM_SYCL_BUILD_DIR/bin/clang-cpp.cfg"
+echo "$clang_flags" >"$LLVM_SYCL_BUILD_DIR/bin/clang.cfg"
 
-cd "$LLVM_SYCL_SOURCE_DIR/build"
+echo "$clang_ldflags" >>"$LLVM_SYCL_BUILD_DIR/bin/clang++.cfg"
+echo "$clang_ldflags" >>"$LLVM_SYCL_BUILD_DIR/bin/clang-cpp.cfg"
+echo "$clang_ldflags" >>"$LLVM_SYCL_BUILD_DIR/bin/clang.cfg"
 
-bash -c "$cmake_cmd"
+cd "$SUBPROJECT_ROOT"
+
+cmake_args=(
+  -DLLVM_HOST_TRIPLE="$CONDA_TOOLCHAIN_HOST"
+  -DLLVM_UTILS_INSTALL_DIR=libexec/llvm
+  -DSYCL_UR_USE_FETCH_CONTENT=OFF
+  -DSYCL_UR_SOURCE_DIR="$intel_urt"
+  -DLLVM_LIBDIR_SUFFIX=""
+  -DCMAKE_TOOLCHAIN_FILE="$PROJECT_TOOLCHAIN_FILE")
+
+# iterate through $CMAKE_ARGS and convert to --cmake-opt format
+for arg in ${CMAKE_ARGS}; do
+  cmake_args+=("$arg")
+done
+for arg in "${cmake_args[@]}"; do
+  cmake_opt="--cmake-opt=$arg"
+  cmake_opts="$cmake_opts $cmake_opt"
+done
+
+configure_cmd="python llvm/buildbot/configure.py --use-lld --cuda --native_cpu --cmake-gen=Ninja --llvm-external-projects=clang-tools-extra -o $LLVM_SYCL_BUILD_DIR $cmake_opts"
+
+echo "Running: $configure_cmd"
+
+$configure_cmd

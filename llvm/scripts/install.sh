@@ -2,10 +2,14 @@
 
 set -e
 
-cd "$LLVM_SYCL_SOURCE_DIR/build"
-cmake --build . -t install -- -j6
+cd "$SUBPROJECT_ROOT"
+python llvm/buildbot/compile.py -j8 -o "$LLVM_SYCL_BUILD_DIR"
+cmake --build "$LLVM_SYCL_BUILD_DIR" -- -j8
+cmake --build "$LLVM_SYCL_BUILD_DIR" --target install -- -j8
 
-cp -r "$SUBPROJECT_ROOT/files/"* "$INSTALL_PREFIX"
+mkdir -p "$INSTALL_PREFIX"
+cp -r "$SUBPROJECT_ROOT"/files/* "$INSTALL_PREFIX"
+cp -r "$LLVM_SYCL_BUILD_DIR/install" "$INSTALL_PREFIX"
 
 if [ -z "$NO_PATCHELF" ]; then
   NO_PATCHELF=0

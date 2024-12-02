@@ -9,7 +9,8 @@ if file "$binary" | grep -q "ELF"; then
   # If there's no RPATH, skip
   if [[ -n "$current_rpath" ]]; then
     # Remove $PREFIX from the RPATH by replacing it with ":"
-    new_rpath=$(echo "$current_rpath" | sed "s|$PREFIX/lib||g" | sed 's|::|:|g' | sed 's|^:||;s|:$||')
+    current_rpath=$(echo "$current_rpath" | sed "s|$PREFIX|\$ORIGIN/..|g" | sed 's|::|:|g' | sed 's|^:||;s|:$||')
+    new_rpath=$(echo "$current_rpath" | sed "s|$LLVM_SYCL_BUILD_DIR|\$ORIGIN/..|g" | sed 's|::|:|g' | sed 's|^:||;s|:$||')
 
     # If the new RPATH is empty, set it explicitly
     if [[ -z "$new_rpath" ]]; then
@@ -24,16 +25,15 @@ if file "$binary" | grep -q "ELF"; then
     if [ -f "$enable_sudo" ]; then
       patchelf_cmd="sudo $patchelf_cmd"
     fi
-    if ! bash -c "$patchelf_cmd --set-rpath '$new_rpath' '$binary'"; then
+    if ! bash -c "$patchelf_cmd --set-rpath '$new_rpath' --force-rpath '$binary'"; then
       echo "Permission denied for $binary."
 
       # Ask user if they want to retry with sudo
-      read -p "Do you want to patching process using sudo? [y/N] " choice
+      read -r -p "Do you want to patch using sudo? [y/N] " choice
       if [[ "$choice" =~ ^[Yy]$ ]]; then
         mkdir -p "$cache_dir"
         touch "$enable_sudo"
-        bash -c "sudo '$BUILD_PREFIX'/bin/patchelf --set-rpath '$new_rpath' '$binary'"
-        if [[ $? -eq 0 ]]; then
+        if bash -c "sudo '$BUILD_PREFIX'/bin/patchelf --set-rpath '$new_rpath' --force-rpath '$binary'"; then
           echo "Successfully updated RPATH for $binary with sudo."
         else
           echo "Failed to update RPATH for $binary even with sudo."
