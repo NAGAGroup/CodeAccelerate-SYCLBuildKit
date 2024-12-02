@@ -20,7 +20,7 @@ fi
 gcc_version=$(gcc -dumpversion)
 gcc_install_dir="$PREFIX/lib/gcc/$CONDA_TOOLCHAIN_HOST/$gcc_version"
 clangxx_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-install-dir=$gcc_install_dir --target=$CONDA_TOOLCHAIN_HOST -I$CONDA_BUILD_SYSROOT/usr/include -isystem $PREFIX/include -isystem $CONDA_CUDA_ROOT/include"
-clang_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-toolchain=$gcc_install_dir --target=$CONDA_TOOLCHAIN_HOST -I$CONDA_BUILD_SYSROOT/usr/include -isystem $PREFIX/include -isystem $CONDA_CUDA_ROOT/include"
+clang_flags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-install-dir=$gcc_install_dir --target=$CONDA_TOOLCHAIN_HOST -I$CONDA_BUILD_SYSROOT/usr/include -isystem $PREFIX/include -isystem $CONDA_CUDA_ROOT/include"
 clang_ldflags="-Wl,-rpath,$LLVM_SYCL_BUILD_DIR/lib -Wl,-rpath-link,$LLVM_SYCL_BUILD_DIR/lib -L $LLVM_SYCL_BUILD_DIR/lib -Wl,-rpath,$PREFIX/lib -Wl,-rpath-link,$PREFIX/lib -L $PREFIX/lib -L $CONDA_CUDA_ROOT/lib -L $CONDA_CUDA_ROOT/lib/stubs -L $CONDA_BUILD_SYSROOT/usr/lib"
 
 mkdir -p "$LLVM_SYCL_BUILD_DIR/bin"
