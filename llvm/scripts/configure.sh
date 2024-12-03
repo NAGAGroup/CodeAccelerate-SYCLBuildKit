@@ -17,16 +17,13 @@ else
   git submodule update --init --recursive
 fi
 
-gcc_version=$(gcc -dumpversion)
-gcc_install_dir="$PREFIX/lib/gcc/$CONDA_TOOLCHAIN_HOST/$gcc_version"
-clangxx_flags="--gcc-install-dir=$gcc_install_dir $CXXFLAGS"
-clang_flags="$clangxx_flags"
+conda_extra_cflags="--gcc-install-dir=$GCC_INSTALL_DIR $CONDA_EXTRA_CFLAGS"
 clang_ldflags="$LDFLAGS -Wl,-rpath,$LLVM_SYCL_BUILD_DIR/lib -Wl,-rpath-link,$LLVM_SYCL_BUILD_DIR/lib -L $LLVM_SYCL_BUILD_DIR/lib"
 
 mkdir -p "$LLVM_SYCL_BUILD_DIR/bin"
-echo "$clangxx_flags" >"$LLVM_SYCL_BUILD_DIR/bin/clang++.cfg"
-echo "$clangxx_flags" >"$LLVM_SYCL_BUILD_DIR/bin/clang-cpp.cfg"
-echo "$clang_flags" >"$LLVM_SYCL_BUILD_DIR/bin/clang.cfg"
+echo "$conda_extra_cflags" >"$LLVM_SYCL_BUILD_DIR/bin/clang++.cfg"
+echo "$conda_extra_cflags" >"$LLVM_SYCL_BUILD_DIR/bin/clang-cpp.cfg"
+echo "$conda_extra_cflags" >"$LLVM_SYCL_BUILD_DIR/bin/clang.cfg"
 
 echo "$clang_ldflags" >>"$LLVM_SYCL_BUILD_DIR/bin/clang++.cfg"
 echo "$clang_ldflags" >>"$LLVM_SYCL_BUILD_DIR/bin/clang-cpp.cfg"
@@ -47,7 +44,7 @@ for arg in "${cmake_args[@]}"; do
   cmake_opts="$cmake_opts $cmake_opt"
 done
 
-configure_cmd="python llvm/buildbot/configure.py --use-lld --cuda --native_cpu --cmake-gen=Ninja --llvm-external-projects=clang-tools-extra -o $LLVM_SYCL_BUILD_DIR $cmake_opts"
+configure_cmd="python llvm/buildbot/configure.py --use-lld --cuda --native_cpu --cmake-gen=Ninja -o $LLVM_SYCL_BUILD_DIR $cmake_opts"
 
 echo "Running: $configure_cmd"
 
