@@ -81,7 +81,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gcc-13.3.0-h9576a4e_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gcc_impl_linux-64-13.3.0-hfea6d02_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gcc_linux-64-13.3.0-hc28eda2_7.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/gds-tools-1.11.1.6-h5888daf_2.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/gds-tools-1.11.1.6-h5888daf_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gettext-0.22.5-he02047a_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gettext-tools-0.22.5-he02047a_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/git-2.47.1-pl5321h59d505e_0.conda
@@ -201,6 +201,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ucx-1.17.0-h05e919c_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/wayland-1.23.1-h3e06ad9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/wget-1.21.4-hda4d442_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/x86_64-microarch-level-3-2_zen.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/xcb-util-0.4.1-hb711507_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/xcb-util-cursor-0.1.5-hb9d3cd8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/xcb-util-image-0.4.0-hb711507_2.conda
@@ -308,7 +309,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gcc-13.3.0-h9576a4e_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gcc_impl_linux-64-13.3.0-hfea6d02_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gcc_linux-64-13.3.0-hc28eda2_7.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/gds-tools-1.11.1.6-h5888daf_2.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/gds-tools-1.11.1.6-h5888daf_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gettext-0.22.5-he02047a_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gettext-tools-0.22.5-he02047a_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/git-2.47.1-pl5321h59d505e_0.conda
@@ -427,6 +428,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ucx-1.17.0-h05e919c_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/wayland-1.23.1-h3e06ad9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/wget-1.21.4-hda4d442_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/x86_64-microarch-level-3-2_zen.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/xcb-util-0.4.1-hb711507_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/xcb-util-cursor-0.1.5-hb9d3cd8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/xcb-util-image-0.4.0-hb711507_2.conda
@@ -1765,12 +1767,12 @@ packages:
 - kind: conda
   name: gds-tools
   version: 1.11.1.6
-  build: h5888daf_2
-  build_number: 2
+  build: h5888daf_3
+  build_number: 3
   subdir: linux-64
-  url: https://conda.anaconda.org/conda-forge/linux-64/gds-tools-1.11.1.6-h5888daf_2.conda
-  sha256: 4ee71d0d43d5b45549ee50f8419840ff19a390f726c73a94f8c31eba69e22578
-  md5: a959f3ee02d0817b12a80ccca2ef9596
+  url: https://conda.anaconda.org/conda-forge/linux-64/gds-tools-1.11.1.6-h5888daf_3.conda
+  sha256: feddcbf3440e37c8ab4c276641a45123df341139d26c5e68c464b6b6000ade60
+  md5: 4619ed7724e381324fd1e53ec1870530
   depends:
   - __glibc >=2.17,<3.0.a0
   - cuda-version >=12.6,<12.7.0a0
@@ -1779,8 +1781,8 @@ packages:
   - libnuma >=2.0.18,<3.0a0
   - libstdcxx >=13
   license: LicenseRef-NVIDIA-End-User-License-Agreement
-  size: 39739845
-  timestamp: 1731111108604
+  size: 39742629
+  timestamp: 1733268500103
 - kind: conda
   name: gettext
   version: 0.22.5
@@ -3929,6 +3931,22 @@ packages:
   license_family: GPL
   size: 770380
   timestamp: 1710770110704
+- kind: conda
+  name: x86_64-microarch-level
+  version: '3'
+  build: 2_zen
+  build_number: 2
+  subdir: noarch
+  noarch: generic
+  url: https://conda.anaconda.org/conda-forge/noarch/x86_64-microarch-level-3-2_zen.conda
+  sha256: 08b2392b9f35872120e7479d384d0cf4ea312a4538a3bede596fe0ba034254e7
+  md5: 2329a8fa9566f3cedfd88c8b989f83e6
+  depends:
+  - __unix
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 8107
+  timestamp: 1717599266412
 - kind: conda
   name: xcb-util
   version: 0.4.1
