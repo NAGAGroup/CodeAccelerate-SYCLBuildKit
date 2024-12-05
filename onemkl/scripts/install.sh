@@ -4,4 +4,5 @@ set -e
 
 mkdir -p "$SUBPROJECT_ROOT/onemkl/build"
 cd "$SUBPROJECT_ROOT/onemkl/build"
-cmake --install . -- -j8
+cmake --build . -- -j8
+cmake --install .

@@ -4,3 +4,6 @@
 [submodule "intel-urt"]
 	path = llvm/intel-urt
 	url = https://github.com/oneapi-src/unified-runtime.git
+[submodule "onemkl/onemkl"]
+	path = onemkl/onemkl
+	url = https://github.com/uxlfoundation/oneMath.git

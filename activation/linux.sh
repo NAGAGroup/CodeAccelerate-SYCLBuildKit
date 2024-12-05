@@ -15,7 +15,7 @@ if [ "$LINUX_BUILD_ENV_ACTIVE" != "1" ]; then
     export CONDA_TOOLCHAIN_HOST="$HOST"
   fi
   if [ -z "$PROJECT_ROOT" ]; then
-    export PROJECT_ROOT="$PIXI_PROJECT_ROOT/.."
+    export PROJECT_ROOT="$PIXI_PROJECT_ROOT"
   fi
 
   export CONDA_CUDA_ROOT="$PREFIX/targets/x86_64-linux"

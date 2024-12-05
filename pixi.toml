@@ -1,15 +1,80 @@
 [project]
 authors = ["Jack Myers <jackhyers97@gmail.com>"]
-channels = ["conda-forge"]
+channels = ["conda-forge", "https://software.repos.intel.com/python/conda/"]
+channel-priority = "disabled"
 description = "Add a short description here"
 name = "codeaccelerate-sycl"
 platforms = ["linux-64"]
 version = "0.1.0"
 
-[tasks]
-configure-llvm = "pixi run --manifest-path llvm/pixi.toml configure"
-install-llvm = "pixi run --manifest-path llvm/pixi.toml install"
-test-llvm = "pixi run --manifest-path llvm/pixi.toml test"
+[activation.env]
+PROJECT_ROOT = "$PIXI_PROJECT_ROOT"
+INSTALL_PREFIX = "$HOME/dpcpp"
+INSTALL_RPATHS = "\\$ORIGIN;\\$ORIGIN/../lib;\\$ORIGIN/../lib64"
 
-[activation]
-env = { PROJECT_ROOT = "$PIXI_PROJECT_ROOT" }
+[target.linux-64.build-dependencies]
+cmake = "3.24.*"
+gcc = ">=13.3.0,<14.3"
+gxx = ">=13.3.0,<14.3"
+cxx-compiler = ">=1.0.0,<1.9"
+c-compiler = ">=1.0.0,<1.9"
+python = ">=3.13.0,<3.14"
+pkgconfig = ">=1.5.5,<1.6"
+pkg-config = ">=0.29.2,<0.30"
+git = ">=2.47.1,<2.48"
+ninja = ">=1.12.1,<1.13"
+wget = ">=1.21.4,<1.22"
+ccache = ">=4.10.1,<4.11"
+patchelf = ">=0.17.2,<0.18"
+lld = ">=19.1.4,<20"
+file = ">=5.39,<6"
+
+[target.linux-64.dependencies]
+gcc = ">=13.3.0,<13.4"
+gxx = ">=13.3.0,<13.4"
+cuda = ">=12.6.3,<12.7"
+pkg-config = ">=0.29.2,<0.30"
+pkgconfig = ">=1.5.5,<1.6"
+sysroot_linux-64 = ">=2.34"
+clinfo = ">=3.0.21.2.21,<3.1"
+libxml2 = ">=2.13.5,<2.14"
+zlib = ">=1.3.1,<1.4"
+libhwloc = ">=2.11.2,<3"
+zstd-static = ">=1.5.6,<1.6"
+backtrace = ">=20220708,<20220708.1"
+tbb-devel = ">=2022.0.0,<2023"
+x86_64-microarch-level = "<=3"
+
+[feature.llvm.activation]
+env = { SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/llvm" }
+scripts = ["activation/linux.sh", "activation/llvm.sh"]
+
+[feature.llvm.target.linux-64.tasks]
+configure = { cmd = "bash scripts/configure.sh", cwd = "llvm" }
+install = { cmd = "bash scripts/install.sh", cwd = "llvm", depends-on = [
+  "configure",
+] }
+test = { cmd = "bash scripts/test.sh", cwd = "llvm", depends-on = ["install"] }
+
+[feature.onemkl.target.linux-64.dependencies]
+mkl-devel = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
+intel-opencl-rt = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
+intel-fortran-rt = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
+mkl-devel-dpcpp = { version = ">2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
+
+[feature.onemkl.activation]
+env = { SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/onemkl", INSTALL_RPATHS = "\\$ORIGIN" }
+scripts = ["activation/linux.sh", "activation/onemkl.sh"]
+
+[feature.onemkl.target.linux-64.tasks]
+configure = { cmd = "bash scripts/configure.sh", cwd = "onemkl" }
+install = { cmd = "bash scripts/install.sh", cwd = "onemkl", depends-on = [
+  "configure",
+] }
+
+[environments]
+llvm = ["llvm"]
+onemkl = ["onemkl"]
+
+[tasks]
+install-toolkit = "pixi run -e llvm install && pixi run -e onemkl install"
