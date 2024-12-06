@@ -13,7 +13,9 @@ if [ -f "$LLVM_SYCL_SOURCE_DIR/llvm/CMakeLists.txt" ]; then
   find "$LLVM_SYCL_BUILD_DIR" -name "CMakeCache.txt" -exec rm {} ";"
 else
   rm -rf "$LLVM_SYCL_SOURCE_DIR"
+  rm -rf "$intel_urt"
   git clone -b latest --depth 1 https://github.com/NAGAGroup/intel-llvm.git "$LLVM_SYCL_SOURCE_DIR"
+  git clone -b 3db3a5e2d935630f2ffddd93a72ae0aa9af89acb --depth 1 https://github.com/oneapi-src/unified-runtime.git "$intel_urt"
 fi
 
 conda_extra_cflags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-install-dir=$GCC_INSTALL_DIR"
@@ -37,8 +39,8 @@ cmake_args=(
   -DLLVM_INSTALL_UTILS=ON
   -DNATIVECPU_USE_OCK=OFF
   -DLLVM_UTILS_INSTALL_DIR=libexec/llvm
-  # -DSYCL_UR_USE_FETCH_CONTENT=OFF
-  # -DSYCL_UR_SOURCE_DIR="$intel_urt"
+  -DSYCL_UR_USE_FETCH_CONTENT=OFF
+  -DSYCL_UR_SOURCE_DIR="$intel_urt"
   -DLLVM_LIBDIR_SUFFIX=""
   -DCMAKE_TOOLCHAIN_FILE="$PROJECT_TOOLCHAIN_FILE")
 
