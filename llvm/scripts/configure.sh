@@ -12,9 +12,8 @@ if [ -f "$LLVM_SYCL_SOURCE_DIR/llvm/CMakeLists.txt" ]; then
   mkdir -p "$LLVM_SYCL_BUILD_DIR"
   find "$LLVM_SYCL_BUILD_DIR" -name "CMakeCache.txt" -exec rm {} ";"
 else
-  rm -rf "$intel_urt"
   rm -rf "$LLVM_SYCL_SOURCE_DIR"
-  git submodule update --init --recursive
+  git clone -b latest --depth 1 https://github.com/NAGAGroup/intel-llvm.git "$LLVM_SYCL_SOURCE_DIR"
 fi
 
 conda_extra_cflags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-install-dir=$GCC_INSTALL_DIR"

@@ -59,7 +59,6 @@ test = { cmd = "bash scripts/test.sh", cwd = "llvm", depends-on = ["install"] }
 [feature.onemkl.target.linux-64.dependencies]
 mkl-devel = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
 intel-opencl-rt = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
-intel-fortran-rt = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
 mkl-devel-dpcpp = { version = ">2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
 
 [feature.onemkl.activation]
