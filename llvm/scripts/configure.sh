@@ -15,7 +15,7 @@ else
   rm -rf "$LLVM_SYCL_SOURCE_DIR"
   rm -rf "$intel_urt"
   git clone -b latest --depth 1 https://github.com/NAGAGroup/intel-llvm.git "$LLVM_SYCL_SOURCE_DIR"
-  git clone -b https://github.com/oneapi-src/unified-runtime.git "$intel_urt"
+  git clone https://github.com/oneapi-src/unified-runtime.git "$intel_urt"
   cd "$intel_urt"
   git reset --hard 3db3a5e2d935630f2ffddd93a72ae0aa9af89acbfi
   cd "$LLVM_SYCL_SOURCE_DIR/.."
