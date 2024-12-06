@@ -14,11 +14,7 @@ if [ -f "$LLVM_SYCL_SOURCE_DIR/llvm/CMakeLists.txt" ]; then
 else
   rm -rf "$LLVM_SYCL_SOURCE_DIR"
   rm -rf "$intel_urt"
-  git clone -b latest --depth 1 https://github.com/NAGAGroup/intel-llvm.git "$LLVM_SYCL_SOURCE_DIR"
-  git clone https://github.com/oneapi-src/unified-runtime.git "$intel_urt"
-  cd "$intel_urt"
-  git reset --hard 3db3a5e2d935630f2ffddd93a72ae0aa9af89acbfi
-  cd "$LLVM_SYCL_SOURCE_DIR/.."
+  git submodule update --init --recursive --depth=1
 fi
 
 conda_extra_cflags="--sysroot=$CONDA_BUILD_SYSROOT --gcc-install-dir=$GCC_INSTALL_DIR"
