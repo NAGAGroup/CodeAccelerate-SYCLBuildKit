@@ -20,10 +20,6 @@ cp -r "$LLVM_SYCL_BUILD_DIR"/libexec "$INSTALL_PREFIX"
 # including files prefixed with .
 cp -r "$LLVM_SYCL_BUILD_DIR"/install/. "$INSTALL_PREFIX"
 
-if [ -z "$NO_PATCHELF" ]; then
-  NO_PATCHELF=0
-fi
-
-if [ "$NO_PATCHELF" != "1" ]; then
+if [[ "${NO_PATCHELF:-0}" != 1 ]]; then
   bash "$SUBPROJECT_ROOT/scripts/patch_installed_rpaths.sh"
 fi
