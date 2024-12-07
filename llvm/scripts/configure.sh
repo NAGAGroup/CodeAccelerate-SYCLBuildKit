@@ -34,9 +34,7 @@ cd "$SUBPROJECT_ROOT"
 cmake_args=(
   -DLLVM_DEFAULT_TARGET_TRIPLE="$CONDA_TOOLCHAIN_HOST"
   -DLLVM_HOST_TRIPLE="$CONDA_TOOLCHAIN_HOST"
-  -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="SPIRV"
   -DLLVM_INSTALL_UTILS=ON
-  -DNATIVECPU_USE_OCK=OFF
   -DLLVM_UTILS_INSTALL_DIR=libexec/llvm
   -DSYCL_UR_USE_FETCH_CONTENT=OFF
   -DSYCL_UR_SOURCE_DIR="$intel_urt"
@@ -44,11 +42,6 @@ cmake_args=(
   -DCMAKE_TOOLCHAIN_FILE="$PROJECT_TOOLCHAIN_FILE")
 
 # iterate through $CMAKE_ARGS and convert to --cmake-opt format
-for arg in $CMAKE_ARGS; do
-  cmake_opt="--cmake-opt=$arg"
-  cmake_opts="$cmake_opts $cmake_opt"
-done
-
 for arg in "${cmake_args[@]}"; do
   cmake_opt="--cmake-opt=$arg"
   cmake_opts="$cmake_opts $cmake_opt"
