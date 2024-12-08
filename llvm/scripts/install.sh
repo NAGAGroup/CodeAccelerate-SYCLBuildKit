@@ -6,6 +6,7 @@ cd "$SUBPROJECT_ROOT"
 python llvm/buildbot/compile.py -o "$LLVM_SYCL_BUILD_DIR"
 cmake --build "$LLVM_SYCL_BUILD_DIR"
 cmake --build "$LLVM_SYCL_BUILD_DIR" --target install
+cp -r "$SUBPROJECT_ROOT/files"/. "$INSTALL_PREFIX"
 
 rm -rf "$INSTALL_PREFIX"
 mkdir -p "$INSTALL_PREFIX"
