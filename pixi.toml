@@ -42,6 +42,9 @@ tbb-devel = "2021.*"
 zlib = "1.*"
 libhwloc = "2.11.2"
 
+[target.linux-64.dependencies]
+cuda-toolkit = ">=12.6.3,<12.7"
+
 [target.linux-64.tasks]
 configure = { cmd = "bash scripts/configure.sh", cwd = "llvm" }
 install = { cmd = "bash scripts/install.sh", cwd = "llvm", depends-on = [
