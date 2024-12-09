@@ -11,6 +11,10 @@ version = "0.1.0"
 PROJECT_ROOT = "$PIXI_PROJECT_ROOT"
 INSTALL_PREFIX = "$HOME/dpcpp"
 INSTALL_RPATHS = "\\$ORIGIN;\\$ORIGIN/../lib;\\$ORIGIN/../lib64"
+SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/llvm"
+
+[activation]
+scripts = ["activation/linux.sh", "activation/llvm.sh"]
 
 [target.linux-64.build-dependencies]
 cmake = "3.24.*"
@@ -38,24 +42,25 @@ sysroot_linux-64 = ">=2.34"
 gcc_linux-64 = ">=13.3.0,<13.4"
 gxx_linux-64 = ">=13.3.0,<13.4"
 
-[feature.llvm.activation]
-env = { SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/llvm" }
-scripts = ["activation/linux.sh", "activation/llvm.sh"]
-
-[feature.llvm.target.linux-64.tasks]
+[target.linux-64.tasks]
 configure = { cmd = "bash scripts/configure.sh", cwd = "llvm" }
 install = { cmd = "bash scripts/install.sh", cwd = "llvm", depends-on = [
   "configure",
 ] }
 test = { cmd = "bash scripts/test.sh", cwd = "llvm", depends-on = ["install"] }
+install-toolkit = "bash scripts/install-toolkit.sh"
 
 [feature.onemkl.target.linux-64.dependencies]
 mkl-devel = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
 intel-opencl-rt = { version = ">=2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
 mkl-devel-dpcpp = { version = ">2025.0.0,<2026", channel = "https://software.repos.intel.com/python/conda/" }
 
+[feature.onemkl.activation.env]
+DPCPP_BUILD_ENV_ACTIVE = "1"
+SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/onemkl"
+INSTALL_RPATHS = "\\$ORIGIN"
+
 [feature.onemkl.activation]
-env = { SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/onemkl", INSTALL_RPATHS = "\\$ORIGIN" }
 scripts = ["activation/linux.sh", "activation/onemkl.sh"]
 
 [feature.onemkl.target.linux-64.tasks]
@@ -65,8 +70,4 @@ install = { cmd = "bash scripts/install.sh", cwd = "onemkl", depends-on = [
 ] }
 
 [environments]
-llvm = ["llvm"]
 onemkl = ["onemkl"]
-
-[tasks]
-install-toolkit = "pixi run -e llvm install && pixi run -e onemkl install"
