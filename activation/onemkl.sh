@@ -1,6 +1,9 @@
 set -e
 
 if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" == "1" ]; then
+  if [ -z "${PIXI_PROJECT_ROOT:-}" ]; then
+    PIXI_PROJECT_ROOT="${PROJECT_ROOT}"
+  fi
   source "$PIXI_PROJECT_ROOT/activation/linux.sh"
 fi
 
