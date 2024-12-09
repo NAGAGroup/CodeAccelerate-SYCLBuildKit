@@ -1,12 +1,16 @@
 set -e
 
-if [ -z "$DPCPP_ROOT" ]; then
-  export DPCPP_ROOT="$HOME/dpcpp"
+if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" == "1" ]; then
+  source "$PIXI_PROJECT_ROOT/activation/linux.sh"
 fi
 
 if [ -z "$ONEMKL_BUILD_ENV_ACTIVE" ]; then
   if [ -z "$SUBPROJECT_ROOT" ]; then
     export SUBPROJECT_ROOT="$PIXI_PROJECT_ROOT/onemkl"
+  fi
+
+  if [ -z "$DPCPP_ROOT" ]; then
+    export DPCPP_ROOT="$HOME/dpcpp"
   fi
 
   source "$DPCPP_ROOT/conda-activate.sh"

@@ -14,7 +14,7 @@ INSTALL_RPATHS = "\\$ORIGIN;\\$ORIGIN/../lib;\\$ORIGIN/../lib64"
 SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/llvm"
 
 [activation]
-scripts = ["activation/linux.sh", "activation/llvm.sh"]
+scripts = ["activation/llvm.sh"]
 
 [target.linux-64.build-dependencies]
 cmake = "3.24.*"
@@ -61,7 +61,7 @@ SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/onemkl"
 INSTALL_RPATHS = "\\$ORIGIN"
 
 [feature.onemkl.activation]
-scripts = ["activation/linux.sh", "activation/onemkl.sh"]
+scripts = ["activation/onemkl.sh"]
 
 [feature.onemkl.target.linux-64.tasks]
 configure = { cmd = "bash scripts/configure.sh", cwd = "onemkl" }
