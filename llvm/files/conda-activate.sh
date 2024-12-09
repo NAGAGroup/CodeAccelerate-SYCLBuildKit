@@ -8,6 +8,9 @@ find "$PREFIX"/bin -type f -exec chmod +x {} \;
 cp -r "$install_dir/libexec"/. "$PREFIX"/libexec
 find "$PREFIX"/libexec -type f -exec chmod +x {} \;
 
+export CC="$PREFIX/bin/clang"
+export CXX="$PREFIX/bin/clang++"
+
 # soft link the rest
 current_dir=$(pwd)
 cd "$install_dir/lib"
