@@ -63,7 +63,10 @@ INSTALL_RPATHS = "\\$ORIGIN"
 scripts = ["activation/onemkl.sh"]
 
 [feature.onemkl.target.linux-64.tasks]
-configure = { cmd = "bash scripts/configure.sh", cwd = "onemkl" }
+install-llvm = { cmd = "bash scripts/install-llvm.sh" }
+configure = { cmd = "bash scripts/configure.sh", cwd = "onemkl", depends-on = [
+  "install-llvm",
+] }
 install = { cmd = "bash scripts/install.sh", cwd = "onemkl", depends-on = [
   "configure",
 ] }
