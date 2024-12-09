@@ -7,7 +7,7 @@ if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
   source "$PIXI_PROJECT_ROOT/activation/linux.sh"
 fi
 
-if [ -z "$ONEMKL_BUILD_ENV_ACTIVE" ]; then
+if [ "${ONEMKL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
   if [ -z "$SUBPROJECT_ROOT" ]; then
     export SUBPROJECT_ROOT="$PIXI_PROJECT_ROOT/onemkl"
   fi

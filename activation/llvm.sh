@@ -7,7 +7,7 @@ if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
   source "$PIXI_PROJECT_ROOT/activation/linux.sh"
 fi
 
-if [ "$DPCPP_BUILD_ENV_ACTIVE" != "1" ]; then
+if [ "${DPCTL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
   if [ -z "$SUBPROJECT_ROOT" ]; then
     export SUBPROJECT_ROOT="$PIXI_PROJECT_ROOT/llvm"
   fi
