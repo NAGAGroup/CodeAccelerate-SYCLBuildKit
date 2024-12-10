@@ -50,7 +50,14 @@ for arg in "${cmake_args[@]}"; do
   cmake_opts="$cmake_opts $cmake_opt"
 done
 
-configure_cmd="python llvm/buildbot/configure.py --use-lld --cuda --native_cpu --cmake-gen=Ninja -o $LLVM_SYCL_BUILD_DIR $cmake_opts"
+configure_cmd="python llvm/buildbot/configure.py 
+    --enable-all-llvm-targets 
+    --shared-libs 
+    --llvm-external-projects=clang-tools-extra 
+    --use-lld 
+    --cuda 
+    --native_cpu 
+    --cmake-gen=Ninja -o $LLVM_SYCL_BUILD_DIR $cmake_opts"
 
 echo "Running: $configure_cmd"
 
