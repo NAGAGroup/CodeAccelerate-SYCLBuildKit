@@ -10,7 +10,7 @@ if file "$binary" | grep -q "ELF"; then
   if [[ -n "$current_rpath" ]]; then
     # Remove $PREFIX from the RPATH by replacing it with ":"
     current_rpath=$(echo "$current_rpath" | sed "s|$PREFIX|\$ORIGIN/..|g" | sed 's|::|:|g' | sed 's|^:||;s|:$||')
-    new_rpath=$(echo "$current_rpath" | sed "s|$LLVM_SYCL_BUILD_DIR|\$ORIGIN/..|g" | sed 's|::|:|g' | sed 's|^:||;s|:$||')
+    new_rpath=$(echo "$current_rpath" | sed "s|$DPCPP_BIN_DIR|\$ORIGIN/..|g" | sed 's|::|:|g' | sed 's|^:||;s|:$||')
 
     # If the new RPATH is empty, set it explicitly
     if [[ -z "$new_rpath" ]]; then

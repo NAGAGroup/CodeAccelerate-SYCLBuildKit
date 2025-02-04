@@ -1,9 +1,6 @@
-[submodule "intel-llvm"]
-	path = llvm/llvm
-	url = https://github.com/intel/llvm.git
-[submodule "intel-urt"]
-	path = llvm/intel-urt
-	url = https://github.com/oneapi-src/unified-runtime.git
-[submodule "onemkl/onemkl"]
-	path = onemkl/onemkl
+[submodule "onemath"]
+	path = packages/onemath/repo
 	url = https://github.com/uxlfoundation/oneMath.git
+[submodule "llvm"]
+	path = packages/llvm/repo
+	url = https://github.com/intel/llvm.git
