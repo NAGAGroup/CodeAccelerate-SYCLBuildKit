@@ -1,18 +1,13 @@
 set -e
 
 if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
-  if [ -z "${SRC_DIR:-}" ]; then
-    SRC_DIR="${PROJECT_ROOT}"
-  fi
-  source "$SRC_DIR/activation/linux.sh"
+  export PROJECT_ROOT="$DPCPP_HOME"
+  source "$DPCPP_HOME/activation/linux.sh"
 fi
 
 if [ "${DPCPP_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
-  if [ -z "$DPCPP_HOME" ]; then
-    export DPCPP_HOME="$PROJECT_ROOT"
-  fi
   if [ -z "$DPCPP_BIN_DIR" ]; then
-    export DPCPP_BIN_DIR="$DPCPP_HOME/build"
+    export DPCPP_BIN_DIR="$DPCPP_HOME/repo/build"
   fi
 
   gcc_version=$(gcc -dumpversion)

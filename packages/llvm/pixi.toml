@@ -4,12 +4,6 @@ preview = ["pixi-build"]
 channels = ["https://prefix.dev/conda-forge"]
 platforms = ["linux-64"]
 
-[activation.env]
-DPCPP_HOME = "$PIXI_PROJECT_ROOT"
-
-[activation]
-scripts = ["activation/llvm.sh"]
-
 # There can be multiple packages in a workspace
 # In `package` you specify properties specific to the package
 [package]

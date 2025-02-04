@@ -1,6 +1,9 @@
 #!/bin/bash
 
-set -e
+set -o pipefail
+stdbuf -oL -eL
+
+source "$DPCPP_HOME/activation/llvm.sh"
 
 cd "$DPCPP_HOME"
 python repo/buildbot/compile.py -o "$DPCPP_BIN_DIR"
