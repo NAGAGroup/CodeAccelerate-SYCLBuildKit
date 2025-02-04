@@ -7,11 +7,17 @@ if [[ ${CONDA_BUILD_CROSS_COMPILATION:-0} == "1" ]]; then
   exit 1
 fi
 
+if [ -z "$PROJECT_ROOT" ]; then
+  source "$DPCPP_HOME/activation/llvm.sh"
+fi
+
 if [ -f "$DPCPP_HOME/repo/CMakeLists.txt" ]; then
   mkdir -p "$DPCPP_BIN_DIR"
   find "$DPCPP_BIN_DIR" -name "CMakeCache.txt" -exec rm {} ";"
 else
+  cd "$DPCPP_HOME/../.."
   rm -rf "$DPCPP_HOME/repo"
+  mkdir -p "$DPCPP_HOME/repo"
   git submodule update --init --recursive --depth=1
 fi
 
