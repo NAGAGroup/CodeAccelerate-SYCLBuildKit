@@ -38,7 +38,12 @@ for arg in "${cmake_args[@]}"; do
   cmake_opts="${cmake_opts} ${cmake_opt}"
 done
 
-configure_cmd="python ${DPCPP_HOME}/repo/buildbot/configure.py -w ${DPCPP_HOME} -s ${DPCPP_HOME}/repo -o ${DPCPP_BUILD} 
+for arg in ${CMAKE_ARGS}; do
+  cmake_opt="--cmake-opt=${arg}"
+  cmake_opts="${cmake_opts} ${cmake_opt}"
+done
+
+configure_cmd="python ${SRC_DIR}/buildbot/configure.py -w ${DPCPP_HOME} -s ${SRC_DIR} -o ${DPCPP_BUILD} 
     --enable-all-llvm-targets 
     --shared-libs 
     --llvm-external-projects=clang-tools-extra 
