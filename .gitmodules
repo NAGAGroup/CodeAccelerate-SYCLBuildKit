@@ -1,0 +1,6 @@
+[submodule "llvm"]
+	path = packages/llvm/repo
+	url = https://github.com/intel/llvm.git
+[submodule "onemath"]
+	path = packages/onemath/repo
+	url = https://github.com/uxlfoundation/oneMath.git
