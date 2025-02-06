@@ -11,7 +11,7 @@ clang_ldflags="-Wl,-rpath,${PREFIX}/lib -Wl,-rpath-link,${PREFIX}/lib -L${PREFIX
 
 mkdir -p "${DPCPP_BUILD}/bin"
 cd "${DPCPP_BUILD}"
-find "${DPCPP_BUILD}" -type f -name 'CMakeCache.txt' -delete
+find "${DPCPP_BUILD}" -type f -name 'CMakeCache.txt' -exec rm -f {} \;
 
 echo "$conda_extra_cflags" >"${DPCPP_BUILD}/bin/${CONDA_TOOLCHAIN_HOST}-clang++.cfg"
 echo "$conda_extra_cflags" >"${DPCPP_BUILD}/bin/${CONDA_TOOLCHAIN_HOST}-clang-cpp.cfg"
@@ -38,10 +38,10 @@ for arg in "${cmake_args[@]}"; do
   cmake_opts="${cmake_opts} ${cmake_opt}"
 done
 
-for arg in ${CMAKE_ARGS}; do
-  cmake_opt="--cmake-opt=${arg}"
-  cmake_opts="${cmake_opts} ${cmake_opt}"
-done
+# for arg in ${CMAKE_ARGS}; do
+#   cmake_opt="--cmake-opt=${arg}"
+#   cmake_opts="${cmake_opts} ${cmake_opt}"
+# done
 
 configure_cmd="python ${SRC_DIR}/buildbot/configure.py -w ${DPCPP_HOME} -s ${SRC_DIR} -o ${DPCPP_BUILD} 
     --enable-all-llvm-targets 

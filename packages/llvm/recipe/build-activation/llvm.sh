@@ -1,7 +1,7 @@
 set -e
 
 if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
-  source "${DPCPP_HOME}/recipe/build-activation/linux.sh"
+  source "${RECIPE_DIR}/build-activation/linux.sh"
 fi
 
 if [ "${DPCPP_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
