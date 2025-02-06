@@ -27,6 +27,7 @@ cache:
       - wget
       - git
       - lld
+      - libhwloc
     host:
       - cuda-toolkit ==${{ cuda_compiler_version }}
       - zstd-static
