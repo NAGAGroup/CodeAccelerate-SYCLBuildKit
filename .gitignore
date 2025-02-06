@@ -4,3 +4,4 @@
 *.egg-info
 packages/llvm/build
 *.conda
+packages/llvm/install
