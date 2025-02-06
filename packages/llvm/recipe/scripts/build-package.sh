@@ -18,4 +18,6 @@ if [ ! -d "${CMAKE_INSTALL_PREFIX}" ]; then
 
   echo "--cuda-path=@PREFIX@/targets/x86_64-linux --sysroot=@SYSROOT@" >"${CMAKE_INSTALL_PREFIX}/bin/${CONDA_TOOLCHAIN_HOST}-clang.cfg"
   echo "--cuda-path=@PREFIX@/targets/x86_64-linux --sysroot=@SYSROOT@" >"${CMAKE_INSTALL_PREFIX}/bin/${CONDA_TOOLCHAIN_HOST}-clang++.cfg"
+else
+  cp -r "${CMAKE_INSTALL_PREFIX}/"* "./"
 fi

@@ -47,11 +47,12 @@ outputs:
   - package:
       name: naga-dpcpp-libs
     build:
-      script: scripts/install-libs.sh
+      files:
+        - lib/*
     requirements:
       run:
         - cuda-libraries ==${{ cuda_compiler_version }}
-        - icl-ocd
+        - ocl-ocd
       run_exports:
         - naga-dpcpp-libs ==${{ version }}
       run_constraints:
@@ -64,7 +65,8 @@ outputs:
   - package:
       name: naga-dpcpp-libs-devel
     build:
-      script: scripts/install-libs-devel.sh
+      files:
+        - include/*
     requirements:
       run:
         - cuda-libraries-dev ==${{ cuda_compiler_version }}
@@ -73,7 +75,11 @@ outputs:
   - package:
       name: naga-dpcpp-toolkit
     build:
-      script: scripts/install-toolkit.sh
+      files:
+        - bin/*
+        - share/*
+        - etc/*
+        - libexec/*
     requirements:
       run:
         - cuda-toolkit ==${{ cuda_compiler_version }}
