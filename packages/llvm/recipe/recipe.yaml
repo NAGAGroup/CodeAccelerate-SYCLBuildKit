@@ -1,0 +1,118 @@
+context:
+  name: naga-dpcpp
+  version: 2025.0.0
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+cache:
+  source:
+    path: ../repo
+  requirements:
+    build:
+      # If your project compiles code (such as a C extension) then add the required compilers as separate entries here.
+      # Compilers are named 'c', 'cxx', 'fortran', among others
+      - ${{ compiler('c') }}
+      - ${{ compiler('cxx') }}
+      - ${{ compiler('cuda') }}
+      - ${{ stdlib('c') }}
+      - ccache
+      - git
+      - python >3
+      - cmake >=3.20,<3.26
+      - pkg-config
+      - pkgconfig
+      - ninja
+      - wget
+      - git
+      - lld
+      - libhwloc
+    host:
+      - cuda-toolkit ==${{ cuda_compiler_version }}
+      - zstd-static
+      - libxml2
+      - zlib
+      - libhwloc
+      - tbb-devel
+      - libopencl-devel
+
+  build:
+    skip:
+      - win
+      - osx
+      - match(cuda_compiler_version, "<12")
+    script: scripts/build-package.sh
+
+outputs:
+  - package:
+      name: naga-dpcpp-libs
+    build:
+      script: scripts/install-libs.sh
+    requirements:
+      run:
+        - cuda-libraries ==${{ cuda_compiler_version }}
+        - ocl-icd
+      run_exports:
+        - naga-dpcpp-libs ==${{ version }}
+      run_constraints:
+        - libllvm ==999999999
+        - libclang ==999999999
+        - libclang-cpp ==999999999
+        - clang-tools ==999999999
+        - libllvmspirv ==999999999
+
+  - package:
+      name: naga-dpcpp-libs-devel
+    build:
+      script: scripts/install-libs-devel.sh
+    requirements:
+      run:
+        - cuda-libraries-dev ==${{ cuda_compiler_version }}
+        - ${{ pin_subpackage('naga-dpcpp-libs', exact=True) }}
+
+  - package:
+      name: naga-dpcpp-toolkit
+    build:
+      script: scripts/install-toolkit.sh
+    requirements:
+      run:
+        - cuda-toolkit ==${{ cuda_compiler_version }}
+        - ${{ pin_subpackage('naga-dpcpp-libs-devel', exact=True) }}
+
+# tests:
+#   script: test.sh
+#   requirements:
+#     run:
+#       - cmake 3.24
+#   files:
+#     source:
+#       - activation/
+#       - llvm/
+
+about:
+  summary: DPC++ toolkit with nvidia support
+  description: |
+    DPC++ is the Intel's naga-source clang toolkit for sycl. DPC++ 
+    supports Nvidia GPUs, making the switch from CUDA possible without 
+    new hardware.
+  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
+  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
+  # See https://spdx.org/licenses/
+  license: Apache-2.0
+  # It is required to include a license file in the package,
+  # (even if the license doesn't require it) using the license_file entry.
+  # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
+  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
+  license_file:
+    - LICENSE.TXT
+  # The doc_url and dev_url are optional.
+  # doc_url: https://simplejson.readthedocs.io/
+  # dev_url: https://github.com/simplejson/simplejson
+  homepage: https://github.com/NAGAGroup/CodeAccelerate-SYCLBuildKit
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
+    - jackm97
