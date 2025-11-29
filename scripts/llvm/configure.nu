@@ -50,6 +50,9 @@ def main [] {
         "-DLLVM_INSTALL_UTILS=ON"
         "-DLLVM_UTILS_INSTALL_DIR=libexec/llvm"
         "-DLLVM_LIBDIR_SUFFIX="
+        # Fix: Unified Runtime incorrectly adds -pie to shared libs with GCC
+        # This causes "undefined symbol: main" linker errors
+        "-DCMAKE_SHARED_LINKER_FLAGS_RELEASE=-Wl,--no-pie"
     ]
 
     # Add CUDA path if available
