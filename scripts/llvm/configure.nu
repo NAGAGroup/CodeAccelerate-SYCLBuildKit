@@ -28,7 +28,6 @@ def main [] {
         "--cmake-gen=Ninja"
         "--shared-libs"
         "--use-lld"
-        "--use-zstd"
         "--enable-all-llvm-targets"
     ]
 
