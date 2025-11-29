@@ -1,77 +1,159 @@
-[project]
+# ============================================================================
+# CodeAccelerate-SYCLBuildKit
+# Build open-source, relocatable SYCL toolchains (Intel LLVM/DPC++) as conda packages
+# ============================================================================
+
+[workspace]
 authors = ["Jack Myers <jackhyers97@gmail.com>"]
-channels = ["conda-forge", "https://software.repos.intel.com/python/conda/"]
-channel-priority = "disabled"
-description = "Add a short description here"
+channels = ["conda-forge"]
 name = "codeaccelerate-sycl"
 platforms = ["linux-64"]
-version = "0.1.0"
+preview = ["pixi-build"]
 
 [system-requirements]
 libc = "2.34"
 
+# ============================================================================
+# Environment Variables
+# ============================================================================
+
 [activation.env]
 PROJECT_ROOT = "$PIXI_PROJECT_ROOT"
-INSTALL_PREFIX = "$HOME/dpcpp"
-INSTALL_RPATHS = "\\$ORIGIN;\\$ORIGIN/../lib;\\$ORIGIN/../lib64"
-SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/llvm"
 
-[activation]
-scripts = ["activation/llvm.sh"]
+# Default install prefix for local development
+INSTALL_PREFIX = "$HOME/.local/sycl-toolkit"
 
-[target.linux-64.build-dependencies]
-cmake = "3.24.*"
-gcc_linux-64 = "12.*"
-gxx_linux-64 = "12.*"
-python = ">=3.9.0,<3.13"
-pkgconfig = ">=1.5.5,<1.6"
-git = ">=2.47.1,<2.48"
-ninja = ">=1.12.1,<1.13"
-wget = ">=1.21.4,<1.22"
-ccache = ">=4.10.1,<5"
-patchelf = ">=0.17.2,<0.18"
-lld = ">=19.1.4,<20"
-file = ">=5.39,<6"
-zstd-static = ">=1.5.6,<1.6"
+# LLVM source locations (populated by git submodule)
+LLVM_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/llvm/repo"
+LLVM_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/llvm"
 
-[target.linux-64.host-dependencies]
-cuda-toolkit = ">=12.6.3,<12.7"
-libxml2 = "2.*"
-tbb-devel = "2021.*"
-zlib = "1.*"
-libhwloc = "2.11.2"
+# oneMath source locations
+ONEMATH_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/onemath/repo"
+ONEMATH_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/onemath"
 
-[target.linux-64.dependencies]
-cuda-toolkit = ">=12.6.3,<12.7"
+# ============================================================================
+# Shared Features
+# ============================================================================
 
-[target.linux-64.tasks]
-configure = { cmd = "bash scripts/configure.sh", cwd = "llvm" }
-install = { cmd = "bash scripts/install.sh", cwd = "llvm", depends-on = [
-  "configure",
-] }
-test = { cmd = "bash scripts/test.sh", cwd = "llvm", depends-on = ["install"] }
-install-toolkit = "bash scripts/install-toolkit.sh"
+# Core build tools required for all builds
+[feature.build-tools.dependencies]
+cmake = ">=3.24"
+ninja = ">=1.12"
+python = ">=3.10,<3.13"
+git = ">=2.40"
+ccache = ">=4.10"
+pkg-config = ">=0.29"
+pkgconfig = ">=1.5"
+patchelf = ">=0.17"
+wget = ">=1.21"
+file = ">=5.39"
 
-[feature.onemkl.target.linux-64.dependencies]
-mkl-devel = { version = ">=2024.0.0,<2025", channel = "https://software.repos.intel.com/python/conda/" }
-intel-opencl-rt = { version = ">=2024.0.0,<2025", channel = "https://software.repos.intel.com/python/conda/" }
-mkl-devel-dpcpp = { version = ">2024.0.0,<2025", channel = "https://software.repos.intel.com/python/conda/" }
+# Scripting with Nushell (like template-cpp-project)
+[feature.build-tools.target.linux-64.dependencies]
+nushell = ">=0.103"
 
-[feature.onemkl.activation.env]
-SUBPROJECT_ROOT = "$PIXI_PROJECT_ROOT/onemkl"
-INSTALL_RPATHS = "\\$ORIGIN"
+# C/C++ compiler for building LLVM (host compiler)
+[feature.host-compiler.target.linux-64.dependencies]
+gcc_linux-64 = ">=12,<14"
+gxx_linux-64 = ">=12,<14"
+sysroot_linux-64 = ">=2.34"
 
-[feature.onemkl.activation]
-scripts = ["activation/onemkl.sh"]
+# Linker
+[feature.linker.target.linux-64.dependencies]
+lld = ">=19"
 
-[feature.onemkl.target.linux-64.tasks]
-install-llvm = { cmd = "bash scripts/install-llvm.sh" }
-configure = { cmd = "bash scripts/configure.sh", cwd = "onemkl", depends-on = [
-  "install-llvm",
-] }
-install = { cmd = "bash scripts/install.sh", cwd = "onemkl", depends-on = [
-  "configure",
-] }
+# CUDA toolkit for NVIDIA backend
+[feature.cuda.target.linux-64.dependencies]
+cuda-toolkit = ">=12.6,<13"
+cuda-nvcc = ">=12.6,<13"
 
-[environments]
-onemkl = ["onemkl"]
+# Host libraries needed for LLVM build
+[feature.llvm-host-deps.target.linux-64.dependencies]
+libxml2 = ">=2.12"
+zlib = ">=1.3"
+zstd-static = ">=1.5"
+libhwloc = ">=2.11"
+tbb-devel = ">=2021"
+ocl-icd = ">=2.3"
+libopencl-devel = ">=3.0"
+
+# ============================================================================
+# LLVM/DPC++ Build Feature
+# ============================================================================
+
+[feature.llvm]
+platforms = ["linux-64"]
+
+[feature.llvm.activation.env]
+# Build configuration
+LLVM_TARGETS = "X86;NVPTX;SPIRV"
+SYCL_BACKENDS = "opencl;cuda;native_cpu"
+
+[feature.llvm.activation]
+scripts = ["activation/linux.sh", "activation/llvm.sh"]
+
+[feature.llvm.target.linux-64.tasks]
+# Submodule management
+submodule-init = "git submodule update --init --recursive packages/llvm/repo"
+submodule-update = "git submodule update --remote packages/llvm/repo"
+
+# Build tasks
+configure = { cmd = "nu scripts/llvm/configure.nu", depends-on = ["submodule-init"] }
+build = { cmd = "nu scripts/llvm/build.nu", depends-on = ["configure"] }
+install = { cmd = "nu scripts/llvm/install.nu", depends-on = ["build"] }
+test = { cmd = "nu scripts/llvm/test.nu", depends-on = ["install"] }
+
+# Utility
+clean = "rm -rf $LLVM_BUILD_DIR"
+sycl-ls = { cmd = "$INSTALL_PREFIX/bin/sycl-ls", depends-on = ["install"] }
+
+# ============================================================================
+# oneMath Build Feature
+# ============================================================================
+
+[feature.onemath]
+platforms = ["linux-64"]
+
+[feature.onemath.activation.env]
+# oneMath backends to enable
+ONEMATH_BLAS_BACKENDS = "cublas"
+ONEMATH_LAPACK_BACKENDS = "cusolver"
+ONEMATH_RNG_BACKENDS = "curand"
+ONEMATH_DFT_BACKENDS = "cufft"
+ONEMATH_SPARSE_BACKENDS = "cusparse"
+
+[feature.onemath.activation]
+scripts = ["activation/linux.sh", "activation/onemath.sh"]
+
+[feature.onemath.target.linux-64.tasks]
+submodule-init = "git submodule update --init --recursive packages/onemath/repo"
+configure = { cmd = "nu scripts/onemath/configure.nu", depends-on = ["submodule-init"] }
+build = { cmd = "nu scripts/onemath/build.nu", depends-on = ["configure"] }
+install = { cmd = "nu scripts/onemath/install.nu", depends-on = ["build"] }
+
+# ============================================================================
+# Development Environments
+# ============================================================================
+
+# Full development environment for LLVM + CUDA
+[environments.dev]
+features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", "llvm"]
+
+# LLVM-only development (no oneMath)
+[environments.llvm]
+features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", "llvm"]
+
+# oneMath development (requires pre-built DPC++)
+[environments.onemath]
+features = ["build-tools", "cuda", "onemath"]
+
+# ============================================================================
+# Package Build Configuration (pixi-build)
+# ============================================================================
+
+[package]
+name = "sycl-toolkit"
+version = "2025.0.0"
+
+[package.build]
+backend = { name = "pixi-build-rattler-build", version = "*" }

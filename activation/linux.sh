@@ -1,31 +1,31 @@
 #!/bin/bash
-set -e
+# Linux build environment activation
+# Simplified version - no sysroot injection needed with modern Intel LLVM
 
-if [ "$LINUX_BUILD_ENV_ACTIVE" != "1" ]; then
-  if [ -z "$BUILD_PREFIX" ]; then
-    export BUILD_PREFIX="$CONDA_PREFIX"
-  fi
-  if [ -z "$PREFIX" ]; then
-    export PREFIX="$CONDA_PREFIX"
-  fi
-  if [ -z "$INSTALL_PREFIX" ]; then
-    export INSTALL_PREFIX="$PREFIX"
-  fi
-  if [ -z "$CONDA_TOOLCHAIN_HOST" ]; then
-    export CONDA_TOOLCHAIN_HOST="$HOST"
-  fi
-  if [ -z "$PROJECT_ROOT" ]; then
-    export PROJECT_ROOT="$PIXI_PROJECT_ROOT"
-  fi
+if [ "${SYCL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
+    # Core directories
+    export PROJECT_ROOT="${PIXI_PROJECT_ROOT}"
+    export BUILD_PREFIX="${CONDA_PREFIX}"
+    export PREFIX="${CONDA_PREFIX}"
+    
+    # Default install location for local development
+    if [ -z "$INSTALL_PREFIX" ]; then
+        export INSTALL_PREFIX="${HOME}/.local/sycl-toolkit"
+    fi
 
-  export CONDA_CUDA_ROOT="$PREFIX/targets/x86_64-linux"
-  export CUDA_LIB_PATH="$CONDA_CUDA_ROOT/lib/stubs"
+    # CUDA configuration (from conda-forge cuda-toolkit)
+    if [ -d "${PREFIX}/targets/x86_64-linux" ]; then
+        export CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
+        export CUDA_HOME="${PREFIX}"
+        export CUDA_PATH="${PREFIX}"
+    fi
 
-  export CONDA_EXTRA_CFLAGS="--sysroot=$CONDA_BUILD_SYSROOT"
-  export CFLAGS="$CONDA_EXTRA_CFLAGS $CFLAGS"
-  export CXXFLAGS="$CONDA_EXTRA_CFLAGS $CXXFLAGS"
+    # OpenCL ICD loader configuration
+    export OCL_ICD_VENDORS="${PREFIX}/etc/OpenCL/vendors"
 
-  export PROJECT_TOOLCHAIN_FILE="$PROJECT_ROOT/toolchains/linux.cmake"
+    # ccache configuration
+    export CCACHE_DIR="${HOME}/.cache/ccache"
+    export CCACHE_MAXSIZE="50G"
 
-  export LINUX_BUILD_ENV_ACTIVE=1
+    export SYCL_BUILD_ENV_ACTIVE=1
 fi

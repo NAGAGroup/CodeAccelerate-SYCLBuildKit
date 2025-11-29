@@ -1,6 +1,6 @@
 context:
-  name: naga-dpcpp
-  version: 2025.0.0
+  name: sycl-dpcpp
+  version: "2025.0.0"
 
 recipe:
   name: ${{ name|lower }}
@@ -11,30 +11,29 @@ cache:
     path: ../repo
   requirements:
     build:
-      # If your project compiles code (such as a C extension) then add the required compilers as separate entries here.
-      # Compilers are named 'c', 'cxx', 'fortran', among others
       - ${{ compiler('c') }}
       - ${{ compiler('cxx') }}
-      - ${{ compiler('cuda') }}
       - ${{ stdlib('c') }}
       - ccache
       - git
-      - python >3
-      - cmake >=3.20,<3.26
+      - python >=3.10,<3.13
+      - cmake >=3.24
       - pkg-config
       - pkgconfig
-      - ninja
+      - ninja >=1.12
       - wget
-      - git
-      - lld
-      - libhwloc
+      - lld >=19
+      - patchelf
+      - file
     host:
       - cuda-toolkit ==${{ cuda_compiler_version }}
-      - zstd-static
-      - libxml2
-      - zlib
-      - libhwloc
-      - tbb-devel
+      - cuda-nvcc ==${{ cuda_compiler_version }}
+      - zstd-static >=1.5
+      - libxml2 >=2.12
+      - zlib >=1.3
+      - libhwloc >=2.11
+      - tbb-devel >=2021
+      - ocl-icd >=2.3
       - libopencl-devel
 
   build:
@@ -45,74 +44,68 @@ cache:
     script: scripts/build-package.sh
 
 outputs:
+  # Runtime libraries only
   - package:
-      name: naga-dpcpp-libs
+      name: ${{ name }}-libs
     build:
       script: scripts/install-libs.sh
     requirements:
       run:
         - cuda-libraries ==${{ cuda_compiler_version }}
         - ocl-icd
+        - libhwloc >=2.11
+        - tbb >=2021
       run_exports:
-        - naga-dpcpp-libs ==${{ version }}
+        - ${{ name }}-libs ==${{ version }}
       run_constraints:
+        # Prevent conflicts with conda-forge LLVM packages
         - libllvm ==999999999
         - libclang ==999999999
         - libclang-cpp ==999999999
         - clang-tools ==999999999
         - libllvmspirv ==999999999
 
+  # Development libraries (headers, cmake files)
   - package:
-      name: naga-dpcpp-libs-devel
+      name: ${{ name }}-libs-devel
     build:
       script: scripts/install-libs-devel.sh
     requirements:
       run:
         - cuda-libraries-dev ==${{ cuda_compiler_version }}
-        - ${{ pin_subpackage('naga-dpcpp-libs', exact=True) }}
+        - ${{ pin_subpackage(name ~ '-libs', exact=True) }}
 
+  # Full toolkit (compiler, tools, everything)
   - package:
-      name: naga-dpcpp-toolkit
+      name: ${{ name }}-toolkit
     build:
       script: scripts/install-toolkit.sh
     requirements:
       run:
         - cuda-toolkit ==${{ cuda_compiler_version }}
-        - ${{ pin_subpackage('naga-dpcpp-libs-devel', exact=True) }}
-
-# tests:
-#   script: test.sh
-#   requirements:
-#     run:
-#       - cmake 3.24
-#   files:
-#     source:
-#       - activation/
-#       - llvm/
+        - ${{ pin_subpackage(name ~ '-libs-devel', exact=True) }}
 
 about:
-  summary: DPC++ toolkit with nvidia support
+  summary: Intel DPC++ SYCL compiler with NVIDIA CUDA support
   description: |
-    DPC++ is the Intel's naga-source clang toolkit for sycl. DPC++ 
-    supports Nvidia GPUs, making the switch from CUDA possible without 
-    new hardware.
-  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
-  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
-  # See https://spdx.org/licenses/
+    Intel DPC++ is an open-source SYCL compiler based on LLVM/Clang.
+    This package provides full NVIDIA GPU support via the CUDA backend,
+    enabling portable heterogeneous programming across CPUs and GPUs.
+    
+    Key features:
+    - SYCL 2020 support
+    - NVIDIA CUDA backend
+    - OpenCL backend
+    - Native CPU backend
+    - Unified Shared Memory (USM)
+    - Runtime compilation (sycl-jit)
   license: Apache-2.0
-  # It is required to include a license file in the package,
-  # (even if the license doesn't require it) using the license_file entry.
-  # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
-  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
   license_file:
     - LICENSE.TXT
-  # The doc_url and dev_url are optional.
-  # doc_url: https://simplejson.readthedocs.io/
-  # dev_url: https://github.com/simplejson/simplejson
-  homepage: https://github.com/NAGAGroup/CodeAccelerate-SYCLBuildKit
+  homepage: https://github.com/intel/llvm
+  repository: https://github.com/NAGAGroup/CodeAccelerate-SYCLBuildKit
+  documentation: https://intel.github.io/llvm-docs/
 
 extra:
   recipe-maintainers:
-    # GitHub IDs for maintainers of the recipe.
-    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
     - jackm97

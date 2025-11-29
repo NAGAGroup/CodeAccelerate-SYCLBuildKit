@@ -1,25 +1,28 @@
 #!/bin/bash
+# Linux build environment for rattler-build recipe
+# Simplified - no sysroot injection needed with modern Intel LLVM
+
 set -e
 
 if [ "${LINUX_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
-  if [ -z "${BUILD_PREFIX:-}" ]; then
-    export BUILD_PREFIX="${CONDA_PREFIX}"
-  fi
-  if [ -z "${PREFIX:-}" ]; then
-    export PREFIX="${CONDA_PREFIX}"
-  fi
-  if [ -z "${CONDA_TOOLCHAIN_HOST:-}" ]; then
-    export CONDA_TOOLCHAIN_HOST="${HOST}"
-  fi
+    # Use BUILD_PREFIX for build tools, PREFIX for host libraries
+    export BUILD_PREFIX="${BUILD_PREFIX:-${CONDA_PREFIX}}"
+    export PREFIX="${PREFIX:-${CONDA_PREFIX}}"
+    
+    # Toolchain host triple
+    export CONDA_TOOLCHAIN_HOST="${CONDA_TOOLCHAIN_HOST:-${HOST:-x86_64-conda-linux-gnu}}"
 
-  export CONDA_CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
-  export CUDA_LIB_PATH="${CONDA_CUDA_ROOT}/lib/stubs"
+    # CUDA configuration (from conda-forge cuda-toolkit)
+    export CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
+    export CUDA_HOME="${PREFIX}"
+    export CUDA_PATH="${PREFIX}"
 
-  export CONDA_EXTRA_CFLAGS="--sysroot=${CONDA_BUILD_SYSROOT}"
-  export CFLAGS="${CONDA_EXTRA_CFLAGS} ${CFLAGS}"
-  export CXXFLAGS="${CONDA_EXTRA_CFLAGS} ${CXXFLAGS}"
+    # Install prefix for the build (within recipe directory)
+    export CMAKE_INSTALL_PREFIX="${RECIPE_DIR}/../install"
 
-  export CMAKE_INSTALL_PREFIX="${RECIPE_DIR}/../install"
+    # ccache configuration
+    export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/ccache}"
+    export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-50G}"
 
-  export LINUX_BUILD_ENV_ACTIVE=1
+    export LINUX_BUILD_ENV_ACTIVE=1
 fi
