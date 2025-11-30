@@ -122,7 +122,53 @@ else
 fi
 
 # =============================================================================
-# Step 2: Fix Unified Runtime -pie bug (affects GCC builds)
+# Step 2: Create clang config files for the just-built compiler
+# =============================================================================
+# The just-built clang in BUILD_DIR/bin/ is used to compile libdevice targets.
+# It needs to know where to find the C++ standard library headers from the
+# conda GCC toolchain. We create .cfg files that point to the correct sysroot.
+echo ">>> Creating clang config files for just-built compiler..."
+
+CLANG_CFG_DIR="${BUILD_DIR}/bin"
+mkdir -p "${CLANG_CFG_DIR}"
+
+# Remove any existing cfg files (they may have stale paths from previous builds)
+rm -f "${CLANG_CFG_DIR}"/*.cfg 2>/dev/null || true
+
+# Find GCC version in BUILD_PREFIX
+GCC_VERSION=$(ls "${BUILD_PREFIX}/lib/gcc/x86_64-conda-linux-gnu/" 2>/dev/null | head -1)
+if [[ -n "${GCC_VERSION}" ]]; then
+    echo "    Found GCC ${GCC_VERSION} in BUILD_PREFIX"
+    
+    # Create config file for the host triple
+    # This will be picked up by clang when invoked with --target=x86_64-conda-linux-gnu
+    cat > "${CLANG_CFG_DIR}/${HOST_TRIPLE}.cfg" << EOF
+# Auto-generated config for conda sysroot
+--gcc-toolchain=${BUILD_PREFIX}
+--sysroot=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot
+EOF
+    echo "    Created ${CLANG_CFG_DIR}/${HOST_TRIPLE}.cfg"
+    
+    # Also create a generic clang.cfg for non-triple invocations
+    cat > "${CLANG_CFG_DIR}/clang.cfg" << EOF
+# Auto-generated config for conda sysroot
+--gcc-toolchain=${BUILD_PREFIX}
+--sysroot=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot
+EOF
+    echo "    Created ${CLANG_CFG_DIR}/clang.cfg"
+    
+    cat > "${CLANG_CFG_DIR}/clang++.cfg" << EOF
+# Auto-generated config for conda sysroot
+--gcc-toolchain=${BUILD_PREFIX}
+--sysroot=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot
+EOF
+    echo "    Created ${CLANG_CFG_DIR}/clang++.cfg"
+else
+    echo "    Warning: Could not find GCC in BUILD_PREFIX, skipping cfg file creation"
+fi
+
+# =============================================================================
+# Step 3: Fix Unified Runtime -pie bug (affects GCC builds)
 # =============================================================================
 echo ">>> Checking Unified Runtime cmake patch..."
 
@@ -139,14 +185,14 @@ else
 fi
 
 # =============================================================================
-# Step 3: Build
+# Step 4: Build
 # =============================================================================
 echo ">>> Building LLVM/DPC++ (incremental if possible)..."
 
 cmake --build "${BUILD_DIR}" -j "${CPU_COUNT}"
 
 # =============================================================================
-# Step 4: Install to PREFIX
+# Step 5: Install to PREFIX
 # =============================================================================
 echo ">>> Installing LLVM/DPC++ to ${PREFIX}..."
 
@@ -157,7 +203,7 @@ cmake --build "${BUILD_DIR}" --target deploy-sycl-toolchain -j "${CPU_COUNT}"
 cmake --build "${BUILD_DIR}" --target install -j "${CPU_COUNT}"
 
 # =============================================================================
-# Step 5: Create compiler symlinks and config files
+# Step 6: Create compiler symlinks and config files
 # =============================================================================
 echo ">>> Creating compiler symlinks and config files..."
 
@@ -187,7 +233,7 @@ CLANG_CFG
 echo "Created config file: ${CONFIG_FILE}"
 
 # =============================================================================
-# Step 6: Install activation scripts
+# Step 7: Install activation scripts
 # =============================================================================
 echo ">>> Installing activation scripts..."
 
@@ -203,13 +249,13 @@ chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
 echo "Installed activation scripts"
 
 # =============================================================================
-# Step 7: Copy license to PREFIX
+# Step 8: Copy license to PREFIX
 # =============================================================================
 echo ">>> Copying license..."
 cp "${ACTUAL_SRC_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT" 2>/dev/null || true
 
 # =============================================================================
-# Step 8: Show ccache stats after build
+# Step 9: Show ccache stats after build
 # =============================================================================
 echo ">>> ccache statistics after build:"
 ccache --show-stats || true
