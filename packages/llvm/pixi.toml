@@ -1,65 +1,30 @@
-# Specifies properties for the whole workspace
+# SYCL Toolkit Package
+# Intel DPC++ SYCL compiler with NVIDIA CUDA support
+#
+# Build with:
+#   pixi build
+#
+# This builds the sycl-toolkit package containing:
+#   - Runtime libraries (libsycl.so, etc.)
+#   - Development files (headers, cmake modules)
+#   - Compiler and tools (clang++, sycl-ls, etc.)
+#
+# Build Strategy:
+#   The build runs directly in the repo/ directory (not a copy) to enable
+#   incremental builds. Subsequent builds will only recompile changed files.
+
 [workspace]
-preview = ["pixi-build"]
-channels = ["https://prefix.dev/conda-forge"]
+channels = ["https://prefix.dev/pixi-build-backends", "conda-forge"]
 platforms = ["linux-64"]
+preview = ["pixi-build"]
 
 [system-requirements]
 libc = "2.34"
 
-# There can be multiple packages in a workspace
-# In `package` you specify properties specific to the package
+# Package configuration for pixi-build
 [package]
-name = "naga-dpcpp-toolkit"
+name = "sycl-toolkit"
 version = "2025.0.0"
 
 [package.build]
-backend = { name = "pixi-build-rattler-build", version = "0.1.*" }
-channels = [
-  "https://prefix.dev/pixi-build-backends",
-  "https://prefix.dev/conda-forge",
-]
-
-# [package.build-dependencies]
-# sysroot_linux-64 = ">=2.34"
-# cmake = ">=3.20"
-# c-compiler = ">=1.9.0,<2"
-# cxx-compiler = ">=1.9.0,<2"
-# python = ">=3.13.1,<3.14"
-# pkgconfig = ">=1.5.5,<2"
-# git = ">=2.47.1,<3"
-# ninja = ">=1.12.1,<2"
-# wget = ">=1.21.4,<2"
-# ccache = ">=4.10.1,<5"
-# patchelf = ">=0.17.2,<0.18"
-# lld = ">=19.1.7,<20"
-# file = ">=5.46,<6"
-# cuda-toolkit = ">=12.8.0,<13"
-#
-# [package.host-dependencies]
-# cmake = ">=3.20"
-# c-compiler = ">=1.9.0,<2"
-# cxx-compiler = ">=1.9.0,<2"
-# pkgconfig = ">=1.5.5,<2"
-# cuda-toolkit = ">=12.8.0,<13"
-# zstd-static = ">=1.5.6,<2"
-# libxml2 = ">=2.13.5,<3"
-# tbb-devel = ">=2022.0.0,<2023"
-# zlib = ">=1.3.1,<2"
-# libhwloc = ">=2.11.2,<3"
-# sysroot_linux-64 = ">=2.34"
-#
-# [package.run-dependencies]
-# c-compiler = ">=1.9.0,<2"
-# cxx-compiler = ">=1.9.0,<2"
-# cuda-toolkit = ">=12.8.0,<13"
-# libxml2 = ">=2.13.5,<3"
-# tbb-devel = ">=2022.0.0,<2023"
-# zlib = ">=1.3.1,<2"
-# libhwloc = ">=2.11.2,<3"
-# sysroot_linux-64 = ">=2.34"
-
-[tasks]
-sycl-ls = "sycl-ls"
-
-[dependencies]
+backend = { name = "pixi-build-rattler-build", version = "*" }

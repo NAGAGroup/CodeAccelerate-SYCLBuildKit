@@ -1,40 +1,32 @@
+# Variant configuration for SYCL Toolkit build
+# Used by pixi-build-rattler-build backend
+#
+# Using clang for cross-platform consistency (Linux + Windows)
+
+# Compiler toolchain - clang for both platforms
 c_compiler:
-- gcc
-c_compiler_version:
-- '13'
-c_stdlib:
-- sysroot
-c_stdlib_version:
-- '2.34'
-cdt_name:
-- conda
-channel_sources:
-- conda-forge
-channel_targets:
-- conda-forge main
-cuda_compiler:
-- cuda-nvcc
-cuda_compiler_version:
-- '12.6'
+  - clang
+
 cxx_compiler:
-- gxx
-cxx_compiler_version:
-- '13'
-docker_image:
-- quay.io/condaforge/linux-anvil-x86_64:alma9
-libhwloc:
-- 2.11.2
-libxml2:
-- '2'
-target_platform:
-- linux-64
-tbb_devel:
-- '2021'
+  - clangxx
+
+# Note: c_compiler_version and cxx_compiler_version are typically not used
+# with clang in conda-forge; the version comes from the clang package itself
+
+c_stdlib:
+  - sysroot
+
+c_stdlib_version:
+  - "2.34"
+
+# CUDA configuration
+cuda_compiler:
+  - cuda-nvcc
+
+cuda_compiler_version:
+  - "12.6"
+
+# Zip keys ensure version consistency
 zip_keys:
-- - c_compiler_version
-  - cxx_compiler_version
-  - cuda_compiler
-  - cuda_compiler_version
-  - docker_image
-zlib:
-- '1'
+  - - cuda_compiler
+    - cuda_compiler_version
