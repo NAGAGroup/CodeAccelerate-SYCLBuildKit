@@ -77,8 +77,10 @@ if [[ -f "${BUILD_MARKER}" ]]; then
     chmod +x "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh" 2>/dev/null || true
     chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh" 2>/dev/null || true
     
-    # Copy license
-    cp "${REPO_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT" 2>/dev/null || true
+    # Copy license (required by rattler-build)
+    echo ">>> Copying license..."
+    cp "${REPO_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT"
+    echo "License copied to ${PREFIX}/LICENSE.TXT"
     
     # Create compiler symlinks (only matters for toolkit package)
     CHOST="${HOST:-x86_64-conda-linux-gnu}"
@@ -307,10 +309,11 @@ chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
 echo "Installed activation scripts"
 
 # =============================================================================
-# Step 8: Copy license
+# Step 8: Copy license (required by rattler-build)
 # =============================================================================
 echo ">>> Copying license..."
-cp "${REPO_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT" 2>/dev/null || true
+cp "${REPO_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT"
+echo "License copied to ${PREFIX}/LICENSE.TXT"
 
 # =============================================================================
 # Step 9: Mark build as complete
