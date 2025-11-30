@@ -1,25 +1,17 @@
-# SYCL Toolkit Package
+# SYCL Toolkit Workspace
 # Intel DPC++ SYCL compiler with NVIDIA CUDA support
 #
 # ============================================================================
 # WORKFLOW
 # ============================================================================
 #
-# First-time build:
-#   pixi build -o output
+# First time setup (creates recipe symlinks):
+#   pixi run -e init setup
 #
-# Install pre-built packages:
+# Build and install:
 #   pixi install
 #
-# Rebuild after changes:
-#   pixi build -o output    # Incremental - only rebuilds changed files
-#   pixi install            # Re-install updated packages
-#
-# ============================================================================
-# PACKAGES
-# ============================================================================
-#
-# This recipe produces three packages:
+# This builds three packages from one recipe:
 #   - sycl-toolkit-libs:  Runtime libraries only (libsycl.so, etc.)
 #   - sycl-toolkit-devel: Development files (headers, cmake modules)
 #   - sycl-toolkit:       Full toolkit with compiler and tools
@@ -33,43 +25,36 @@
 # A full initial build takes ~30-60 minutes; incremental builds are much faster.
 #
 # ============================================================================
-# CONFIGURATION NOTE
-# ============================================================================
-#
-# The file:// channel URL below must be an absolute path. Update it to match
-# your system. You can generate the correct URL with:
-#
-#   echo "file://$(pwd)/output"
-#
-# ============================================================================
 
 [workspace]
-channels = [
-    # Build backend for pixi-build
-    "https://prefix.dev/pixi-build-backends",
-    # Local output channel (built packages) - UPDATE THIS PATH!
-    "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/llvm/output",
-    # Base dependencies from conda-forge
-    "conda-forge"
-]
+channels = ["https://prefix.dev/pixi-build-backends", "conda-forge"]
 platforms = ["linux-64"]
 preview = ["pixi-build"]
 
 [system-requirements]
 libc = "2.34"
 
-# ----------------------------------------------------------------------------
-# Runtime dependencies - install pre-built packages from local channel
-# ----------------------------------------------------------------------------
+# Install the full toolkit (which depends on devel -> libs)
 [dependencies]
-sycl-toolkit = ">=2025.0.0"
+sycl-toolkit = { path = "toolkit" }
 
-# ----------------------------------------------------------------------------
-# Package definition for pixi-build
-# ----------------------------------------------------------------------------
-[package]
-name = "sycl-toolkit"
-version = "2025.0.0"
+# ============================================================================
+# Init environment (no default feature - doesn't trigger package builds)
+# ============================================================================
+# This environment is used to set up recipe symlinks before the first build.
+# The symlinks are a workaround until pixi-build-rattler-build supports
+# custom recipe paths. See: https://github.com/prefix-dev/pixi-build-backends/issues/471
 
-[package.build]
-backend = { name = "pixi-build-rattler-build", version = "*" }
+[feature.init]
+platforms = ["linux-64"]
+
+[feature.init.tasks]
+setup = """
+ln -sfn ../recipe libs/recipe && \
+ln -sfn ../recipe devel/recipe && \
+ln -sfn ../recipe toolkit/recipe && \
+echo "Recipe symlinks created successfully"
+"""
+
+[environments]
+init = { features = ["init"], no-default-feature = true }
