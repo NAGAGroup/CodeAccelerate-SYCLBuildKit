@@ -29,15 +29,23 @@ echo "=============================================="
 # Source and build directories
 # =============================================================================
 # SRC_DIR points to a dummy directory (to avoid copying 160k files)
-# The REAL source is at RECIPE_DIR/../repo
-REPO_DIR="$(cd "${RECIPE_DIR}/.." && pwd)/repo"
+# The REAL source is relative to the actual recipe directory.
+#
+# RECIPE_DIR may be a symlink (e.g., devel/recipe -> ../recipe), so we need
+# to resolve it to find the real location and then navigate to repo/
+REAL_RECIPE_DIR="$(cd "${RECIPE_DIR}" && pwd -P)"
+REPO_DIR="$(dirname "${REAL_RECIPE_DIR}")/repo"
 
 if [[ ! -d "${REPO_DIR}" ]]; then
     echo "ERROR: Repository not found at ${REPO_DIR}"
+    echo "RECIPE_DIR:      ${RECIPE_DIR}"
+    echo "REAL_RECIPE_DIR: ${REAL_RECIPE_DIR}"
     exit 1
 fi
 
-echo ">>> Using source directory: ${REPO_DIR}"
+echo ">>> RECIPE_DIR (may be symlink): ${RECIPE_DIR}"
+echo ">>> REAL_RECIPE_DIR:             ${REAL_RECIPE_DIR}"
+echo ">>> Using source directory:      ${REPO_DIR}"
 
 # Build directory - inside the repo for persistence across package builds
 BUILD_DIR="${REPO_DIR}/build"
