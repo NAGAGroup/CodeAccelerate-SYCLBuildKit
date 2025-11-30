@@ -1,27 +1,72 @@
 # SYCL Toolkit Package
 # Intel DPC++ SYCL compiler with NVIDIA CUDA support
 #
-# Build with:
-#   pixi build
+# ============================================================================
+# WORKFLOW
+# ============================================================================
 #
-# This builds the sycl-toolkit package containing:
-#   - Runtime libraries (libsycl.so, etc.)
-#   - Development files (headers, cmake modules)
-#   - Compiler and tools (clang++, sycl-ls, etc.)
+# First-time build:
+#   pixi build -o output
 #
-# Build Strategy:
-#   The build runs directly in the repo/ directory (not a copy) to enable
-#   incremental builds. Subsequent builds will only recompile changed files.
+# Install pre-built packages:
+#   pixi install
+#
+# Rebuild after changes:
+#   pixi build -o output    # Incremental - only rebuilds changed files
+#   pixi install            # Re-install updated packages
+#
+# ============================================================================
+# PACKAGES
+# ============================================================================
+#
+# This recipe produces three packages:
+#   - sycl-toolkit-libs:  Runtime libraries only (libsycl.so, etc.)
+#   - sycl-toolkit-devel: Development files (headers, cmake modules)
+#   - sycl-toolkit:       Full toolkit with compiler and tools
+#
+# ============================================================================
+# BUILD STRATEGY
+# ============================================================================
+#
+# The build runs directly in the repo/ directory (not a copy) to enable
+# incremental builds. Subsequent builds only recompile changed files.
+# A full initial build takes ~30-60 minutes; incremental builds are much faster.
+#
+# ============================================================================
+# CONFIGURATION NOTE
+# ============================================================================
+#
+# The file:// channel URL below must be an absolute path. Update it to match
+# your system. You can generate the correct URL with:
+#
+#   echo "file://$(pwd)/output"
+#
+# ============================================================================
 
 [workspace]
-channels = ["https://prefix.dev/pixi-build-backends", "conda-forge"]
+channels = [
+    # Build backend for pixi-build
+    "https://prefix.dev/pixi-build-backends",
+    # Local output channel (built packages) - UPDATE THIS PATH!
+    "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/llvm/output",
+    # Base dependencies from conda-forge
+    "conda-forge"
+]
 platforms = ["linux-64"]
 preview = ["pixi-build"]
 
 [system-requirements]
 libc = "2.34"
 
-# Package configuration for pixi-build
+# ----------------------------------------------------------------------------
+# Runtime dependencies - install pre-built packages from local channel
+# ----------------------------------------------------------------------------
+[dependencies]
+sycl-toolkit = ">=2025.0.0"
+
+# ----------------------------------------------------------------------------
+# Package definition for pixi-build
+# ----------------------------------------------------------------------------
 [package]
 name = "sycl-toolkit"
 version = "2025.0.0"
