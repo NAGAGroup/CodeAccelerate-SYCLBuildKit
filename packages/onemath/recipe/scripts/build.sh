@@ -137,9 +137,14 @@ echo ">>> Configuring oneMath..."
 
 mkdir -p "${BUILD_DIR}"
 
-# Only run configure if CMakeCache.txt doesn't exist
-if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
+# Only run configure if build.ninja doesn't exist (indicates valid build system)
+# We check build.ninja instead of CMakeCache.txt because CMakeCache.txt can exist
+# from a failed configure that didn't generate the build system
+if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
     echo ">>> Running cmake configure..."
+    
+    # Clean any stale CMake state that might interfere
+    rm -f "${BUILD_DIR}/CMakeCache.txt" 2>/dev/null || true
     
     cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
@@ -150,6 +155,8 @@ if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
         -DSYCL_IMPLEMENTATION=dpc++ \
         -DENABLE_SYCL=ON \
         -DTARGET_DOMAINS="blas;lapack;rng;dft;sparse_blas" \
+        -DENABLE_MKLCPU_BACKEND=OFF \
+        -DENABLE_MKLGPU_BACKEND=OFF \
         -DENABLE_CUBLAS_BACKEND=ON \
         -DENABLE_CUSOLVER_BACKEND=ON \
         -DENABLE_CURAND_BACKEND=ON \
@@ -161,7 +168,7 @@ if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
         -DBUILD_EXAMPLES=OFF \
         -DBUILD_DOC=OFF
 else
-    echo ">>> Skipping configure (using existing CMakeCache.txt)"
+    echo ">>> Skipping configure (using existing build.ninja)"
 fi
 
 # =============================================================================

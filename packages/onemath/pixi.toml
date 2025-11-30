@@ -34,7 +34,7 @@
 [workspace]
 channels = [
     # Local channel with sycl-toolkit packages (built from packages/llvm/)
-    "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/llvm/output",
+    "nagagroup",
     # Pixi build backends
     "https://prefix.dev/pixi-build-backends",
     # Main conda-forge channel
