@@ -24,9 +24,9 @@ recipe:
   version: ${{ version }}
 
 source:
-  # Use the repo directory directly
-  # The build script builds in-place for incremental compilation
-  path: ../repo
+  # Use a minimal dummy directory to avoid copying 160k+ files
+  # The build script uses RECIPE_DIR/../repo as the actual source
+  path: ../src
 
 build:
   skip:

@@ -1,10 +1,14 @@
 #!/bin/bash
 # Build script for SYCL Toolkit rattler-build recipe
-# This script builds DIRECTLY in the repo directory for incremental builds
+#
+# OPTIMIZATION: This recipe produces 3 packages (libs, devel, toolkit) from one
+# source. To avoid rebuilding 3 times, we:
+#   1. Build once on first package, touch a marker file
+#   2. Subsequent packages detect marker, skip build, just re-install to PREFIX
 #
 # Environment variables provided by rattler-build:
-#   SRC_DIR     - Source directory (should be the actual repo, not a copy)
-#   PREFIX      - Install prefix
+#   SRC_DIR     - Source directory (dummy - we use RECIPE_DIR/../repo instead)
+#   PREFIX      - Install prefix for this package
 #   BUILD_PREFIX - Build tools prefix
 #   RECIPE_DIR  - Recipe directory
 #   CPU_COUNT   - Number of CPUs available
@@ -22,37 +26,92 @@ echo "CPU_COUNT:    ${CPU_COUNT}"
 echo "=============================================="
 
 # =============================================================================
-# Determine the REAL repo directory for in-place builds
+# Source and build directories
 # =============================================================================
-# The recipe uses `source: path: ../repo` which means SRC_DIR might be:
-# 1. A copy made by rattler-build (if it copies the source)
-# 2. The actual repo directory (if rattler-build uses it directly)
-#
-# For incremental builds, we ALWAYS want to build in the real repo directory
-# The real repo is at: RECIPE_DIR/../repo (relative to recipe/recipe.yaml)
-
+# SRC_DIR points to a dummy directory (to avoid copying 160k files)
+# The REAL source is at RECIPE_DIR/../repo
 REPO_DIR="$(cd "${RECIPE_DIR}/.." && pwd)/repo"
 
-if [[ -d "${REPO_DIR}" ]]; then
-    echo ">>> Using real repo directory for in-place build: ${REPO_DIR}"
-    ACTUAL_SRC_DIR="${REPO_DIR}"
-else
-    echo ">>> Warning: Real repo not found at ${REPO_DIR}, using SRC_DIR"
-    ACTUAL_SRC_DIR="${SRC_DIR}"
+if [[ ! -d "${REPO_DIR}" ]]; then
+    echo "ERROR: Repository not found at ${REPO_DIR}"
+    exit 1
 fi
 
-# Build directory - inside the repo for persistence
-BUILD_DIR="${ACTUAL_SRC_DIR}/build"
+echo ">>> Using source directory: ${REPO_DIR}"
+
+# Build directory - inside the repo for persistence across package builds
+BUILD_DIR="${REPO_DIR}/build"
+
+# Marker file to indicate build is complete
+BUILD_MARKER="${BUILD_DIR}/.build_complete"
 
 echo ">>> Build directory: ${BUILD_DIR}"
-if [[ -d "${BUILD_DIR}" ]]; then
-    echo ">>> Found existing build directory - will do incremental build!"
-else
-    echo ">>> No existing build directory - will do full build"
+
+# =============================================================================
+# Check if build is already complete (optimization for multi-output recipe)
+# =============================================================================
+if [[ -f "${BUILD_MARKER}" ]]; then
+    echo "=============================================="
+    echo ">>> BUILD ALREADY COMPLETE - skipping to install"
+    echo ">>> Previous build detected via marker: ${BUILD_MARKER}"
+    echo "=============================================="
+    
+    # Just re-run install with this package's PREFIX
+    echo ">>> Installing to ${PREFIX}..."
+    cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
+    
+    # Install activation scripts (only needed for toolkit package, but harmless for others)
+    echo ">>> Installing activation scripts..."
+    mkdir -p "${PREFIX}/etc/conda/activate.d"
+    mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+    cp "${RECIPE_DIR}/scripts/activate.sh" "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh" 2>/dev/null || true
+    cp "${RECIPE_DIR}/scripts/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh" 2>/dev/null || true
+    chmod +x "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh" 2>/dev/null || true
+    chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh" 2>/dev/null || true
+    
+    # Copy license
+    cp "${REPO_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT" 2>/dev/null || true
+    
+    # Create compiler symlinks (only matters for toolkit package)
+    CHOST="${HOST:-x86_64-conda-linux-gnu}"
+    if [[ -d "${PREFIX}/bin" ]]; then
+        pushd "${PREFIX}/bin"
+        for compiler in clang clang++ clang-cpp; do
+            if [[ -e "${compiler}" ]] && [[ ! -e "${CHOST}-${compiler}" ]]; then
+                ln -s "${compiler}" "${CHOST}-${compiler}"
+                echo "Created symlink: ${CHOST}-${compiler} -> ${compiler}"
+            fi
+        done
+        popd
+        
+        # Create config file if clang exists
+        if [[ -e "${PREFIX}/bin/clang" ]]; then
+            CONFIG_FILE="${PREFIX}/bin/${CHOST}.cfg"
+            cat > "${CONFIG_FILE}" << 'CLANG_CFG'
+# Clang configuration for conda-forge SYCL Toolkit
+-I<CFGDIR>/../include/sycl
+-I<CFGDIR>/../include/sycl/CL
+-L<CFGDIR>/../lib
+-Wl,-rpath,<CFGDIR>/../lib
+CLANG_CFG
+            echo "Created config file: ${CONFIG_FILE}"
+        fi
+    fi
+    
+    echo "=============================================="
+    echo "SYCL Toolkit install complete (reused existing build)"
+    echo "Installed to: ${PREFIX}"
+    echo "=============================================="
+    exit 0
 fi
 
 # =============================================================================
-# ccache configuration - use shared directory for all builds
+# Full build (first package only)
+# =============================================================================
+echo ">>> No build marker found - performing full build"
+
+# =============================================================================
+# ccache configuration
 # =============================================================================
 export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/sycl-toolkit-ccache}"
 export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-50G}"
@@ -89,14 +148,13 @@ echo "    CXX: ${CXX:-not set}"
 # =============================================================================
 echo ">>> Configuring LLVM/DPC++..."
 
-cd "${ACTUAL_SRC_DIR}"
+cd "${REPO_DIR}"
 mkdir -p "${BUILD_DIR}"
 
-# Only run configure if CMakeCache.txt doesn't exist or PREFIX changed
-if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]] || \
-   ! grep -q "CMAKE_INSTALL_PREFIX:PATH=${PREFIX}" "${BUILD_DIR}/CMakeCache.txt" 2>/dev/null; then
+# Only run configure if CMakeCache.txt doesn't exist
+if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
     
-    echo ">>> Running configure (first build or PREFIX changed)..."
+    echo ">>> Running configure (first build)..."
     
     python buildbot/configure.py \
         -o "${BUILD_DIR}" \
@@ -124,15 +182,12 @@ fi
 # =============================================================================
 # Step 2: Create clang config files for the just-built compiler
 # =============================================================================
-# The just-built clang in BUILD_DIR/bin/ is used to compile libdevice targets.
-# It needs to know where to find the C++ standard library headers from the
-# conda GCC toolchain. We create .cfg files that point to the correct sysroot.
 echo ">>> Creating clang config files for just-built compiler..."
 
 CLANG_CFG_DIR="${BUILD_DIR}/bin"
 mkdir -p "${CLANG_CFG_DIR}"
 
-# Remove any existing cfg files (they may have stale paths from previous builds)
+# Remove any existing cfg files
 rm -f "${CLANG_CFG_DIR}"/*.cfg 2>/dev/null || true
 
 # Find GCC version in BUILD_PREFIX
@@ -140,8 +195,6 @@ GCC_VERSION=$(ls "${BUILD_PREFIX}/lib/gcc/x86_64-conda-linux-gnu/" 2>/dev/null |
 if [[ -n "${GCC_VERSION}" ]]; then
     echo "    Found GCC ${GCC_VERSION} in BUILD_PREFIX"
     
-    # Create config file for the host triple
-    # This will be picked up by clang when invoked with --target=x86_64-conda-linux-gnu
     cat > "${CLANG_CFG_DIR}/${HOST_TRIPLE}.cfg" << EOF
 # Auto-generated config for conda sysroot
 --gcc-toolchain=${BUILD_PREFIX}
@@ -149,7 +202,6 @@ if [[ -n "${GCC_VERSION}" ]]; then
 EOF
     echo "    Created ${CLANG_CFG_DIR}/${HOST_TRIPLE}.cfg"
     
-    # Also create a generic clang.cfg for non-triple invocations
     cat > "${CLANG_CFG_DIR}/clang.cfg" << EOF
 # Auto-generated config for conda sysroot
 --gcc-toolchain=${BUILD_PREFIX}
@@ -168,7 +220,7 @@ else
 fi
 
 # =============================================================================
-# Step 3: Fix Unified Runtime -pie bug (affects GCC builds)
+# Step 3: Fix Unified Runtime -pie bug
 # =============================================================================
 echo ">>> Checking Unified Runtime cmake patch..."
 
@@ -192,15 +244,13 @@ echo ">>> Building LLVM/DPC++ (incremental if possible)..."
 cmake --build "${BUILD_DIR}" -j "${CPU_COUNT}"
 
 # =============================================================================
-# Step 5: Install to PREFIX
+# Step 5: Deploy and Install
 # =============================================================================
-echo ">>> Installing LLVM/DPC++ to ${PREFIX}..."
-
-# Deploy SYCL toolchain components
+echo ">>> Deploying SYCL toolchain..."
 cmake --build "${BUILD_DIR}" --target deploy-sycl-toolchain -j "${CPU_COUNT}"
 
-# Run cmake install
-cmake --build "${BUILD_DIR}" --target install -j "${CPU_COUNT}"
+echo ">>> Installing LLVM/DPC++ to ${PREFIX}..."
+cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
 
 # =============================================================================
 # Step 6: Create compiler symlinks and config files
@@ -249,13 +299,20 @@ chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
 echo "Installed activation scripts"
 
 # =============================================================================
-# Step 8: Copy license to PREFIX
+# Step 8: Copy license
 # =============================================================================
 echo ">>> Copying license..."
-cp "${ACTUAL_SRC_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT" 2>/dev/null || true
+cp "${REPO_DIR}/LICENSE.TXT" "${PREFIX}/LICENSE.TXT" 2>/dev/null || true
 
 # =============================================================================
-# Step 9: Show ccache stats after build
+# Step 9: Mark build as complete
+# =============================================================================
+echo ">>> Marking build as complete..."
+touch "${BUILD_MARKER}"
+echo "Created marker: ${BUILD_MARKER}"
+
+# =============================================================================
+# Step 10: Show ccache stats
 # =============================================================================
 echo ">>> ccache statistics after build:"
 ccache --show-stats || true
