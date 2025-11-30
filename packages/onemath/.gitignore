@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+output/
+
+# Pixi
+.pixi/
+pixi.lock
+
+# Editor
+.vscode/
+.idea/
+
+# Conda packages
+*.conda
+*.tar.bz2

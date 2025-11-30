@@ -1,0 +1,194 @@
+# oneMath Recipe for rattler-build
+# SYCL math library wrapping NVIDIA CUDA math libraries (cuBLAS, cuSOLVER, etc.)
+#
+# Build with:
+#   cd packages/onemath && pixi build
+#
+# Or directly with rattler-build:
+#   rattler-build build -r recipe/recipe.yaml
+#
+# Build Strategy:
+#   This recipe builds directly in the repo directory (not a copy) to enable
+#   incremental builds. Each output runs the build script, but since we build
+#   in-place, subsequent outputs just do a quick incremental "rebuild" (no-op
+#   if nothing changed) and then install to PREFIX.
+
+schema_version: 1
+
+context:
+  name: onemath
+  version: "0.1.0"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Use a minimal dummy directory to avoid copying the full repo
+  # The build script uses RECIPE_DIR/../repo as the actual source
+  path: ../src
+
+build:
+  skip:
+    - win
+    - osx
+
+outputs:
+  # ==========================================================================
+  # Runtime libraries only (smallest footprint)
+  # ==========================================================================
+  - package:
+      name: ${{ name }}-libs
+      version: ${{ version }}
+    build:
+      script: scripts/build.sh
+      files:
+        # Runtime shared libraries
+        - lib/*.so*
+        # License
+        - LICENSE
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.24
+        - ninja >=1.12
+        - ccache
+        - pkg-config
+        - git
+      host:
+        # SYCL compiler (from our sycl-toolkit package)
+        - sycl-toolkit
+        # CUDA dependencies
+        - cuda-toolkit >=12.6,<13
+        - cuda-nvcc >=12.6,<13
+        - libcublas-dev >=12.6,<13
+        - libcusolver-dev >=12.6,<13
+        - libcurand-dev >=12.6,<13
+        - libcufft-dev >=12.6,<13
+        - libcusparse-dev >=12.6,<13
+      run:
+        - sycl-toolkit-libs
+        - cuda-cudart >=12.6,<13
+        - libcublas >=12.6,<13
+        - libcusolver >=12.6,<13
+        - libcurand >=12.6,<13
+        - libcufft >=12.6,<13
+        - libcusparse >=12.6,<13
+      run_exports:
+        - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
+    tests:
+      - script:
+          - test -f $PREFIX/lib/libonemath.so || test -f $PREFIX/lib/libonemath_blas_cublas.so
+
+  # ==========================================================================
+  # Development libraries (headers, cmake files)
+  # ==========================================================================
+  - package:
+      name: ${{ name }}-devel
+      version: ${{ version }}
+    build:
+      script: scripts/build.sh
+      files:
+        # All headers
+        - include/**
+        # CMake modules
+        - lib/cmake/**
+        # pkg-config files
+        - lib/pkgconfig/**
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.24
+        - ninja >=1.12
+        - ccache
+        - pkg-config
+        - git
+      host:
+        - sycl-toolkit
+        - cuda-toolkit >=12.6,<13
+        - cuda-nvcc >=12.6,<13
+        - libcublas-dev >=12.6,<13
+        - libcusolver-dev >=12.6,<13
+        - libcurand-dev >=12.6,<13
+        - libcufft-dev >=12.6,<13
+        - libcusparse-dev >=12.6,<13
+      run:
+        - ${{ pin_subpackage(name ~ '-libs', exact=True) }}
+        - sycl-toolkit-devel
+    tests:
+      - script:
+          - test -d $PREFIX/include/oneapi/math || test -d $PREFIX/include/oneapi/mkl
+
+  # ==========================================================================
+  # Full package (meta-package that pulls in everything)
+  # ==========================================================================
+  - package:
+      name: ${{ name }}
+      version: ${{ version }}
+    build:
+      script: scripts/build.sh
+      # No additional files - this is a meta-package
+      files: []
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.24
+        - ninja >=1.12
+        - ccache
+        - pkg-config
+        - git
+      host:
+        - sycl-toolkit
+        - cuda-toolkit >=12.6,<13
+        - cuda-nvcc >=12.6,<13
+        - libcublas-dev >=12.6,<13
+        - libcusolver-dev >=12.6,<13
+        - libcurand-dev >=12.6,<13
+        - libcufft-dev >=12.6,<13
+        - libcusparse-dev >=12.6,<13
+      run:
+        - ${{ pin_subpackage(name ~ '-devel', exact=True) }}
+        - sycl-toolkit
+      run_exports:
+        - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
+    tests:
+      - script:
+          - test -d $PREFIX/include/oneapi
+
+about:
+  summary: oneMath - SYCL math library with NVIDIA CUDA backend support
+  description: |
+    oneMath (formerly oneMKL Interfaces) provides a unified SYCL interface
+    to vendor-optimized math libraries. This package builds with NVIDIA CUDA
+    backends:
+    
+    Packages:
+    - onemath-libs: Runtime libraries only
+    - onemath-devel: Development files (headers, cmake)
+    - onemath: Full package (meta-package)
+    
+    Supported domains:
+    - BLAS (cuBLAS backend)
+    - LAPACK (cuSOLVER backend)
+    - RNG (cuRAND backend)
+    - DFT/FFT (cuFFT backend)
+    - Sparse BLAS (cuSPARSE backend)
+    
+    Usage:
+      #include <oneapi/math.hpp>
+      // or legacy: #include <oneapi/mkl.hpp>
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://github.com/uxlfoundation/oneMath
+  repository: https://github.com/NAGAGroup/CodeAccelerate-SYCLBuildKit
+  documentation: https://oneapi-spec.uxlfoundation.org/specifications/oneapi/latest/elements/onemath/source/
+
+extra:
+  recipe-maintainers:
+    - jackm97

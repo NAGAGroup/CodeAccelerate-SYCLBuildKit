@@ -1,0 +1,29 @@
+# Variant configuration for oneMath build
+# Used by pixi-build-rattler-build backend
+#
+# Using clang for cross-platform consistency (same as sycl-toolkit)
+
+# Compiler toolchain - clang for both platforms
+c_compiler:
+  - clang
+
+cxx_compiler:
+  - clangxx
+
+c_stdlib:
+  - sysroot
+
+c_stdlib_version:
+  - "2.34"
+
+# CUDA configuration
+cuda_compiler:
+  - cuda-nvcc
+
+cuda_compiler_version:
+  - "12.6"
+
+# Zip keys ensure version consistency
+zip_keys:
+  - - cuda_compiler
+    - cuda_compiler_version
