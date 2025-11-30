@@ -1,0 +1,12 @@
+# onemath package (full package)
+# This is a sub-package that only defines [package], not [workspace]
+
+[package]
+name = "onemath"
+version = "0.1.0"
+
+[package.build]
+backend = { name = "pixi-build-rattler-build", version = "*" }
+
+[package.run-dependencies]
+onemath-devel = { path = "../devel" }

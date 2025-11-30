@@ -60,22 +60,14 @@ outputs:
       host:
         # SYCL compiler (from our sycl-toolkit package)
         - sycl-toolkit
-        # CUDA dependencies
-        - cuda-toolkit >=12.6,<13
-        - cuda-nvcc >=12.6,<13
-        - libcublas-dev >=12.6,<13
-        - libcusolver-dev >=12.6,<13
-        - libcurand-dev >=12.6,<13
-        - libcufft-dev >=12.6,<13
-        - libcusparse-dev >=12.6,<13
+        # CUDA dependencies - cuda-toolkit metapackage handles version coordination
+        # cuda-version pins the CUDA version, cuda-toolkit pulls all dev libraries
+        - cuda-version >=12.6,<13
+        - cuda-toolkit
       run:
         - sycl-toolkit-libs
-        - cuda-cudart >=12.6,<13
-        - libcublas >=12.6,<13
-        - libcusolver >=12.6,<13
-        - libcurand >=12.6,<13
-        - libcufft >=12.6,<13
-        - libcusparse >=12.6,<13
+        # Runtime CUDA libraries (pulled transitively via cuda-toolkit's cuda-libraries)
+        - cuda-cudart
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:
@@ -109,13 +101,8 @@ outputs:
         - git
       host:
         - sycl-toolkit
-        - cuda-toolkit >=12.6,<13
-        - cuda-nvcc >=12.6,<13
-        - libcublas-dev >=12.6,<13
-        - libcusolver-dev >=12.6,<13
-        - libcurand-dev >=12.6,<13
-        - libcufft-dev >=12.6,<13
-        - libcusparse-dev >=12.6,<13
+        - cuda-version >=12.6,<13
+        - cuda-toolkit
       run:
         - ${{ pin_subpackage(name ~ '-libs', exact=True) }}
         - sycl-toolkit-devel
@@ -145,13 +132,8 @@ outputs:
         - git
       host:
         - sycl-toolkit
-        - cuda-toolkit >=12.6,<13
-        - cuda-nvcc >=12.6,<13
-        - libcublas-dev >=12.6,<13
-        - libcusolver-dev >=12.6,<13
-        - libcurand-dev >=12.6,<13
-        - libcufft-dev >=12.6,<13
-        - libcusparse-dev >=12.6,<13
+        - cuda-version >=12.6,<13
+        - cuda-toolkit
       run:
         - ${{ pin_subpackage(name ~ '-devel', exact=True) }}
         - sycl-toolkit

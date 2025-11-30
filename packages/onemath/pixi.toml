@@ -27,15 +27,14 @@
 # incremental builds. Subsequent builds only recompile changed files.
 #
 # IMPORTANT: The sycl-toolkit package must be built first from packages/llvm/
-# The local channel (../llvm/output) is included to provide the sycl-toolkit
-# packages during the build.
+# The local channel is included to provide the sycl-toolkit packages during build.
 #
 # ============================================================================
 
 [workspace]
 channels = [
     # Local channel with sycl-toolkit packages (built from packages/llvm/)
-    { path = "../llvm/output" },
+    "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/llvm/output",
     # Pixi build backends
     "https://prefix.dev/pixi-build-backends",
     # Main conda-forge channel
