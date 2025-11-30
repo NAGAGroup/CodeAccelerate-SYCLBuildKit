@@ -97,7 +97,7 @@ scripts = ["activation/linux.sh", "activation/llvm.sh"]
 submodule-init = "git submodule update --init --recursive packages/llvm/repo"
 submodule-update = "git submodule update --remote packages/llvm/repo"
 
-# Build tasks
+# Build tasks (local development)
 configure = { cmd = "nu scripts/llvm/configure.nu", depends-on = ["submodule-init"] }
 build = { cmd = "nu scripts/llvm/build.nu", depends-on = ["configure"] }
 install = { cmd = "nu scripts/llvm/install.nu", depends-on = ["build"] }
@@ -146,14 +146,3 @@ features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", 
 # oneMath development (requires pre-built DPC++)
 [environments.onemath]
 features = ["build-tools", "cuda", "onemath"]
-
-# ============================================================================
-# Package Build Configuration (pixi-build)
-# ============================================================================
-
-[package]
-name = "sycl-toolkit"
-version = "2025.0.0"
-
-[package.build]
-backend = { name = "pixi-build-rattler-build", version = "*" }

@@ -1,17 +1,14 @@
 #!/bin/bash
-# Linux build environment activation
-# Simplified version - no sysroot injection needed with modern Intel LLVM
+# Linux build environment activation for local development builds
+# (Not used by rattler-build recipe - only for `pixi run -e llvm` tasks)
 
 if [ "${SYCL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
     # Core directories
     export PROJECT_ROOT="${PIXI_PROJECT_ROOT}"
-    export BUILD_PREFIX="${CONDA_PREFIX}"
     export PREFIX="${CONDA_PREFIX}"
-    
+
     # Default install location for local development
-    if [ -z "$INSTALL_PREFIX" ]; then
-        export INSTALL_PREFIX="${HOME}/.local/sycl-toolkit"
-    fi
+    export INSTALL_PREFIX="${INSTALL_PREFIX:-${HOME}/.local/sycl-toolkit}"
 
     # CUDA configuration (from conda-forge cuda-toolkit)
     if [ -d "${PREFIX}/targets/x86_64-linux" ]; then
@@ -23,8 +20,8 @@ if [ "${SYCL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
     # OpenCL ICD loader configuration
     export OCL_ICD_VENDORS="${PREFIX}/etc/OpenCL/vendors"
 
-    # ccache configuration
-    export CCACHE_DIR="${HOME}/.cache/ccache"
+    # ccache configuration (shared with rattler-build)
+    export CCACHE_DIR="${HOME}/.cache/sycl-toolkit-ccache"
     export CCACHE_MAXSIZE="50G"
 
     export SYCL_BUILD_ENV_ACTIVE=1
