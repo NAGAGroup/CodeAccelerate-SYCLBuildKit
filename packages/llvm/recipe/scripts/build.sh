@@ -72,10 +72,11 @@ if [[ -f "${BUILD_MARKER}" ]]; then
     echo ">>> Installing activation scripts..."
     mkdir -p "${PREFIX}/etc/conda/activate.d"
     mkdir -p "${PREFIX}/etc/conda/deactivate.d"
-    cp "${RECIPE_DIR}/scripts/activate.sh" "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh" 2>/dev/null || true
-    cp "${RECIPE_DIR}/scripts/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh" 2>/dev/null || true
-    chmod +x "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh" 2>/dev/null || true
-    chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh" 2>/dev/null || true
+    # Write activation script directly (since scripts are not bundled)
+    cat /tmp/activate_content.sh > "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
+    cat /tmp/deactivate_content.sh > "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
+    chmod +x "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
+    chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
     
     # Copy license (required by rattler-build)
     echo ">>> Copying license..."
@@ -299,8 +300,8 @@ echo ">>> Installing activation scripts..."
 
 mkdir -p "${PREFIX}/etc/conda/activate.d"
 mkdir -p "${PREFIX}/etc/conda/deactivate.d"
-
-cp "${RECIPE_DIR}/scripts/activate.sh" "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
+cat /tmp/activate_content.sh > "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
+cat /tmp/deactivate_content.sh > "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
 cp "${RECIPE_DIR}/scripts/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
 
 chmod +x "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
