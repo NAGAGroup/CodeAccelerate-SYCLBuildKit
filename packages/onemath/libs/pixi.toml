@@ -1,9 +1,9 @@
-# onemath-libs package
+# naga-onemath-libs package
 # This is a sub-package that only defines [package], not [workspace]
 
 [package]
-name = "onemath-libs"
-version = "0.1.0"
+name = "naga-onemath-libs"
+version = "2025.12.1"
 
 [package.build]
 backend = { name = "pixi-build-rattler-build", version = "*" }

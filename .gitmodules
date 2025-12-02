@@ -4,3 +4,6 @@
 [submodule "onemath"]
 	path = packages/onemath/repo
 	url = https://github.com/uxlfoundation/oneMath.git
+[submodule "packages/onedpl/repo"]
+	path = packages/onedpl/repo
+	url = https://github.com/uxlfoundation/oneDPL.git

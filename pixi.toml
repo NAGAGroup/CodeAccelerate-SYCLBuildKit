@@ -21,15 +21,17 @@ libc = "2.34"
 PROJECT_ROOT = "$PIXI_PROJECT_ROOT"
 
 # Default install prefix for local development
-INSTALL_PREFIX = "$HOME/.local/sycl-toolkit"
+INSTALL_PREFIX = "$HOME/.local/naga-sycl-toolkit"
 
 # LLVM source locations (populated by git submodule)
 LLVM_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/llvm/repo"
 LLVM_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/llvm"
 
-# oneMath source locations
+# oneAPI library source locations
 ONEMATH_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/onemath/repo"
 ONEMATH_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/onemath"
+ONEDPL_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/onedpl/repo"
+ONEDPL_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/onedpl"
 
 # ============================================================================
 # Shared Features
@@ -108,28 +110,27 @@ clean = "rm -rf $LLVM_BUILD_DIR"
 sycl-ls = { cmd = "$INSTALL_PREFIX/bin/sycl-ls", depends-on = ["install"] }
 
 # ============================================================================
-# oneMath Build Feature
+# oneAPI Libraries Feature (oneMath + oneDPL)
 # ============================================================================
+# This feature provides environment setup for oneAPI libraries.
+# Packages are installed via pixi dependencies, not manual build tasks.
 
-[feature.onemath]
+[feature.oneapi]
 platforms = ["linux-64"]
 
-[feature.onemath.activation.env]
-# oneMath backends to enable
+[feature.oneapi.activation.env]
+# oneMath backends
 ONEMATH_BLAS_BACKENDS = "cublas"
 ONEMATH_LAPACK_BACKENDS = "cusolver"
 ONEMATH_RNG_BACKENDS = "curand"
 ONEMATH_DFT_BACKENDS = "cufft"
 ONEMATH_SPARSE_BACKENDS = "cusparse"
 
-[feature.onemath.activation]
-scripts = ["activation/linux.sh", "activation/onemath.sh"]
+# oneDPL backend
+ONEDPL_BACKEND = "dpcpp"
 
-[feature.onemath.target.linux-64.tasks]
-submodule-init = "git submodule update --init --recursive packages/onemath/repo"
-configure = { cmd = "nu scripts/onemath/configure.nu", depends-on = ["submodule-init"] }
-build = { cmd = "nu scripts/onemath/build.nu", depends-on = ["configure"] }
-install = { cmd = "nu scripts/onemath/install.nu", depends-on = ["build"] }
+[feature.oneapi.activation]
+scripts = ["activation/linux.sh"]
 
 # ============================================================================
 # Development Environments
@@ -139,10 +140,10 @@ install = { cmd = "nu scripts/onemath/install.nu", depends-on = ["build"] }
 [environments.dev]
 features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", "llvm"]
 
-# LLVM-only development (no oneMath)
+# LLVM-only development (no oneAPI libraries)
 [environments.llvm]
 features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", "llvm"]
 
-# oneMath development (requires pre-built DPC++)
-[environments.onemath]
-features = ["build-tools", "cuda", "onemath"]
+# oneAPI libraries development - oneMath + oneDPL (requires pre-built DPC++)
+[environments.oneapi]
+features = ["build-tools", "cuda", "oneapi"]

@@ -1,7 +1,7 @@
 # Variant configuration for oneMath build
 # Used by pixi-build-rattler-build backend
 #
-# Using clang for cross-platform consistency (same as sycl-toolkit)
+# Using clang for cross-platform consistency (same as naga-sycl-toolkit)
 
 # Compiler toolchain - clang for both platforms
 c_compiler:

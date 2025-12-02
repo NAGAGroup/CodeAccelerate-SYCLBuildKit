@@ -73,8 +73,8 @@ if [[ -f "${BUILD_MARKER}" ]]; then
     mkdir -p "${PREFIX}/etc/conda/activate.d"
     mkdir -p "${PREFIX}/etc/conda/deactivate.d"
     # Write activation script directly (since scripts are not bundled)
-    cat /tmp/activate_content.sh > "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
-    cat /tmp/deactivate_content.sh > "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
+    cat "${RECIPE_DIR}/scripts/activate.sh" > "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
+    cat "${RECIPE_DIR}/scripts/activate.sh" > "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
     chmod +x "${PREFIX}/etc/conda/activate.d/~~activate-sycl.sh"
     chmod +x "${PREFIX}/etc/conda/deactivate.d/~~deactivate-sycl.sh"
     
@@ -124,7 +124,7 @@ echo ">>> No build marker found - performing full build"
 # =============================================================================
 # ccache configuration
 # =============================================================================
-export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/sycl-toolkit-ccache}"
+export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/naga-sycl-toolkit-ccache}"
 export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-50G}"
 export CCACHE_COMPRESS=1
 export CCACHE_COMPRESSLEVEL=6

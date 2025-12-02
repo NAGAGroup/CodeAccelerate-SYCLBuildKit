@@ -76,7 +76,7 @@ CodeAccelerate-SYCLBuildKit/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `INSTALL_PREFIX` | `~/.local/sycl-toolkit` | Installation directory |
+| `INSTALL_PREFIX` | `~/.local/naga-sycl-toolkit` | Installation directory |
 | `LLVM_SOURCE_DIR` | `packages/llvm/repo` | LLVM source location |
 | `LLVM_BUILD_DIR` | `build/llvm` | LLVM build directory |
 | `SYCL_BACKENDS` | `opencl;cuda;native_cpu` | SYCL backends to enable |

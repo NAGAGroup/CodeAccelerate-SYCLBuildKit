@@ -16,8 +16,8 @@
 schema_version: 1
 
 context:
-  name: sycl-toolkit
-  version: "2025.0.0"
+  name: naga-sycl-toolkit
+  version: "2025.12.1"
 
 recipe:
   name: ${{ name }}
@@ -222,9 +222,9 @@ about:
     enabling portable heterogeneous programming across CPUs and GPUs.
     
     Packages:
-    - sycl-toolkit-libs: Runtime libraries only (for running SYCL apps)
-    - sycl-toolkit-devel: Development files (headers, cmake)
-    - sycl-toolkit: Full compiler and tools
+    - naga-sycl-toolkit-libs: Runtime libraries only (for running SYCL apps)
+    - naga-sycl-toolkit-devel: Development files (headers, cmake)
+    - naga-sycl-toolkit: Full compiler and tools
     
     Key features:
     - SYCL 2020 support

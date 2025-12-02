@@ -1,4 +1,4 @@
-# SYCL Toolkit Workspace
+# naga-sycl-toolkit Workspace
 # Intel DPC++ SYCL compiler with NVIDIA CUDA support
 #
 # ============================================================================
@@ -12,9 +12,9 @@
 #   pixi install
 #
 # This builds three packages from one recipe:
-#   - sycl-toolkit-libs:  Runtime libraries only (libsycl.so, etc.)
-#   - sycl-toolkit-devel: Development files (headers, cmake modules)
-#   - sycl-toolkit:       Full toolkit with compiler and tools
+#   - naga-sycl-toolkit-libs:  Runtime libraries only (libsycl.so, etc.)
+#   - naga-sycl-toolkit-devel: Development files (headers, cmake modules)
+#   - naga-sycl-toolkit:       Full toolkit with compiler and tools
 #
 # ============================================================================
 # BUILD STRATEGY
@@ -36,7 +36,7 @@ libc = "2.34"
 
 # Install the full toolkit (which depends on devel -> libs)
 [dependencies]
-sycl-toolkit = { path = "toolkit" }
+naga-sycl-toolkit = { path = "toolkit" }
 
 # ============================================================================
 # Init environment (no default feature - doesn't trigger package builds)

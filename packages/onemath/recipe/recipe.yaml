@@ -16,8 +16,8 @@
 schema_version: 1
 
 context:
-  name: onemath
-  version: "0.1.0"
+  name: naga-onemath
+  version: "2025.12.1"
 
 recipe:
   name: ${{ name }}
@@ -58,14 +58,14 @@ outputs:
         - pkg-config
         - git
       host:
-        # SYCL compiler (from our sycl-toolkit package)
-        - sycl-toolkit
+        # SYCL compiler (from our naga-sycl-toolkit package)
+        - naga-sycl-toolkit
         # CUDA dependencies - cuda-toolkit metapackage handles version coordination
         # cuda-version pins the CUDA version, cuda-toolkit pulls all dev libraries
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - sycl-toolkit-libs
+        - naga-sycl-toolkit-libs
         # Runtime CUDA libraries (pulled transitively via cuda-toolkit's cuda-libraries)
         - cuda-cudart
       run_exports:
@@ -100,12 +100,12 @@ outputs:
         - pkg-config
         - git
       host:
-        - sycl-toolkit
+        - naga-sycl-toolkit
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
         - ${{ pin_subpackage(name ~ '-libs', exact=True) }}
-        - sycl-toolkit-devel
+        - naga-sycl-toolkit-devel
     tests:
       - script:
           - test -d $PREFIX/include/oneapi/math || test -d $PREFIX/include/oneapi/mkl
@@ -131,12 +131,12 @@ outputs:
         - pkg-config
         - git
       host:
-        - sycl-toolkit
+        - naga-sycl-toolkit
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
         - ${{ pin_subpackage(name ~ '-devel', exact=True) }}
-        - sycl-toolkit
+        - naga-sycl-toolkit
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:
@@ -149,19 +149,19 @@ about:
     oneMath (formerly oneMKL Interfaces) provides a unified SYCL interface
     to vendor-optimized math libraries. This package builds with NVIDIA CUDA
     backends:
-    
+
     Packages:
-    - onemath-libs: Runtime libraries only
-    - onemath-devel: Development files (headers, cmake)
-    - onemath: Full package (meta-package)
-    
+    - naga-onemath-libs: Runtime libraries only
+    - naga-onemath-devel: Development files (headers, cmake)
+    - naga-onemath: Full package (meta-package)
+
     Supported domains:
     - BLAS (cuBLAS backend)
     - LAPACK (cuSOLVER backend)
     - RNG (cuRAND backend)
     - DFT/FFT (cuFFT backend)
     - Sparse BLAS (cuSPARSE backend)
-    
+
     Usage:
       #include <oneapi/math.hpp>
       // or legacy: #include <oneapi/mkl.hpp>

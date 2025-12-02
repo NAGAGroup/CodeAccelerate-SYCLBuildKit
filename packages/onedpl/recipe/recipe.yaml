@@ -1,0 +1,79 @@
+# naga-onedpl Recipe for rattler-build
+# SYCL parallel algorithms library (header-only)
+#
+# Build with:
+#   cd packages/onedpl && pixi build
+#
+# Or directly with rattler-build:
+#   rattler-build build -r recipe/recipe.yaml
+#
+# Build Strategy:
+#   oneDPL is header-only, so we just run CMake configure + install
+#   to generate proper CMake config files. No actual compilation needed.
+
+schema_version: 1
+
+context:
+  name: naga-onedpl
+  version: "2025.12.1"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Use a minimal dummy directory to avoid copying the full repo
+  # The build script uses RECIPE_DIR/../repo as the actual source
+  path: ../src
+
+build:
+  skip:
+    - win
+    - osx
+
+outputs:
+  - package:
+      name: ${{ name }}
+      version: ${{ version }}
+    build:
+      script: scripts/build.sh
+    requirements:
+      build:
+        - cmake >=3.20
+        - ninja
+      host:
+        # SYCL compiler (for CMake SYCL detection)
+        - naga-sycl-toolkit
+        - tbb-devel
+      run:
+        # Users need SYCL compiler to use oneDPL with SYCL backend
+        - naga-sycl-toolkit
+
+    tests:
+      - script:
+          - test -f $PREFIX/include/oneapi/dpl/algorithm
+
+about:
+  summary: oneAPI DPC++ Library - Parallel algorithms for SYCL
+  description: |
+    oneDPL (oneAPI DPC++ Library) provides high-productivity APIs for
+    parallel programming on accelerators. It includes:
+
+    - Parallel STL algorithms with SYCL execution policies
+    - Extension APIs for heterogeneous computing
+    - Tested Standard C++ APIs
+
+    This package is built with SYCL/DPC++ backend support for GPU acceleration.
+
+    Usage:
+      #include <oneapi/dpl/algorithm>
+      #include <oneapi/dpl/execution>
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: LICENSE.txt
+  homepage: https://github.com/uxlfoundation/oneDPL
+  repository: https://github.com/NAGAGroup/CodeAccelerate-SYCLBuildKit
+  documentation: https://uxlfoundation.github.io/oneDPL
+
+extra:
+  recipe-maintainers:
+    - jackm97

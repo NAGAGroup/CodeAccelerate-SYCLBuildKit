@@ -8,7 +8,7 @@ if [ "${SYCL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
     export PREFIX="${CONDA_PREFIX}"
 
     # Default install location for local development
-    export INSTALL_PREFIX="${INSTALL_PREFIX:-${HOME}/.local/sycl-toolkit}"
+    export INSTALL_PREFIX="${INSTALL_PREFIX:-${HOME}/.local/naga-sycl-toolkit}"
 
     # CUDA configuration (from conda-forge cuda-toolkit)
     if [ -d "${PREFIX}/targets/x86_64-linux" ]; then
@@ -21,7 +21,7 @@ if [ "${SYCL_BUILD_ENV_ACTIVE:-0}" != "1" ]; then
     export OCL_ICD_VENDORS="${PREFIX}/etc/OpenCL/vendors"
 
     # ccache configuration (shared with rattler-build)
-    export CCACHE_DIR="${HOME}/.cache/sycl-toolkit-ccache"
+    export CCACHE_DIR="${HOME}/.cache/naga-sycl-toolkit-ccache"
     export CCACHE_MAXSIZE="50G"
 
     export SYCL_BUILD_ENV_ACTIVE=1

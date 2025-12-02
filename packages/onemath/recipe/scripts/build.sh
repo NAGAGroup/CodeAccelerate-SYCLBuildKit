@@ -105,7 +105,7 @@ ccache --show-stats || true
 echo "=============================================="
 
 # =============================================================================
-# Find SYCL compiler (from sycl-toolkit package)
+# Find SYCL compiler (from naga-sycl-toolkit package)
 # =============================================================================
 SYCL_ROOT="${PREFIX}"
 SYCL_CXX="${SYCL_ROOT}/bin/clang++"
@@ -113,7 +113,7 @@ SYCL_CC="${SYCL_ROOT}/bin/clang"
 
 if [[ ! -x "${SYCL_CXX}" ]]; then
     echo "ERROR: SYCL compiler not found at ${SYCL_CXX}"
-    echo "Make sure sycl-toolkit is in host requirements"
+    echo "Make sure naga-sycl-toolkit is in host requirements"
     exit 1
 fi
 
