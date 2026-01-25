@@ -6,7 +6,7 @@
 # ============================================================================
 #
 # First time setup (creates recipe symlinks):
-#   pixi run -e init setup
+#   pixi run -e intel-init setup
 #
 # Build and install:
 #   pixi install
@@ -45,10 +45,10 @@ naga-sycl-toolkit = { path = "toolkit" }
 # The symlinks are a workaround until pixi-build-rattler-build supports
 # custom recipe paths. See: https://github.com/prefix-dev/pixi-build-backends/issues/471
 
-[feature.init]
+[feature.intel-init]
 platforms = ["linux-64"]
 
-[feature.init.tasks]
+[feature.intel-init.tasks]
 setup = """
 ln -sfn ../recipe libs/recipe && \
 ln -sfn ../recipe devel/recipe && \
@@ -57,4 +57,4 @@ echo "Recipe symlinks created successfully"
 """
 
 [environments]
-init = { features = ["init"], no-default-feature = true }
+intel-init = { features = ["intel-init"], no-default-feature = true }

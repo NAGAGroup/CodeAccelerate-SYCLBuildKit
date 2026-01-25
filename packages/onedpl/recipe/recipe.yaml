@@ -15,7 +15,7 @@ schema_version: 1
 
 context:
   name: naga-onedpl
-  version: "2025.12.1"
+  version: "2026.1.1"
 
 recipe:
   name: ${{ name }}
@@ -43,11 +43,11 @@ outputs:
         - ninja
       host:
         # SYCL compiler (for CMake SYCL detection)
-        - naga-sycl-toolkit
+        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
         - tbb-devel
       run:
         # Users need SYCL compiler to use oneDPL with SYCL backend
-        - naga-sycl-toolkit
+        - naga-adaptivecpp-toolkit
 
     tests:
       - script:
@@ -63,7 +63,7 @@ about:
     - Extension APIs for heterogeneous computing
     - Tested Standard C++ APIs
 
-    This package is built with SYCL/DPC++ backend support for GPU acceleration.
+     This package is built with AdaptiveCpp SYCL backend support for GPU acceleration.
 
     Usage:
       #include <oneapi/dpl/algorithm>

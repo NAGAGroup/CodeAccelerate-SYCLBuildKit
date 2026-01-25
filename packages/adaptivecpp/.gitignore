@@ -1,0 +1,17 @@
+# Pixi
+.pixi/
+pixi.lock
+
+# Build outputs
+output/
+*.conda
+
+# Recipe symlinks (created by `pixi run -e init setup`)
+# These are workarounds until pixi-build-rattler-build supports custom recipe paths
+# See: https://github.com/prefix-dev/pixi-build-backends/issues/471
+libs/recipe
+devel/recipe
+toolkit/recipe
+
+# Build artifacts
+build/

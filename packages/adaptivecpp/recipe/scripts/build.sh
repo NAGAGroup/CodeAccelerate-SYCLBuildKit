@@ -1,7 +1,7 @@
 #!/bin/bash
-# Build script for oneMath rattler-build recipe
+# Build script for AdaptiveCpp rattler-build recipe
 #
-# OPTIMIZATION: This recipe produces 3 packages (libs, devel, onemath) from one
+# OPTIMIZATION: This recipe produces 3 packages (libs, devel, toolkit) from one
 # source. To avoid rebuilding 3 times, we:
 #   1. Build once on first package, touch a marker file
 #   2. Subsequent packages detect marker, skip build, just re-install to PREFIX
@@ -16,7 +16,7 @@
 set -exuo pipefail
 
 echo "=============================================="
-echo "Building oneMath (SYCL Math Library)"
+echo "Building AdaptiveCpp SYCL Toolkit"
 echo "=============================================="
 echo "SRC_DIR:      ${SRC_DIR}"
 echo "PREFIX:       ${PREFIX}"
@@ -42,7 +42,7 @@ if [[ ! -d "${REPO_DIR}" ]]; then
     echo "REAL_RECIPE_DIR: ${REAL_RECIPE_DIR}"
     echo ""
     echo "Make sure the submodule is initialized:"
-    echo "  git submodule update --init packages/onemath/repo"
+    echo "  git submodule update --init packages/adaptivecpp/repo"
     exit 1
 fi
 
@@ -71,13 +71,8 @@ if [[ -f "${BUILD_MARKER}" ]]; then
     echo ">>> Installing to ${PREFIX}..."
     cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
     
-    # Copy license (required by rattler-build)
-    echo ">>> Copying license..."
-    cp "${REPO_DIR}/LICENSE" "${PREFIX}/LICENSE"
-    echo "License copied to ${PREFIX}/LICENSE"
-    
     echo "=============================================="
-    echo "oneMath install complete (reused existing build)"
+    echo "AdaptiveCpp install complete (reused existing build)"
     echo "Installed to: ${PREFIX}"
     echo "=============================================="
     exit 0
@@ -91,8 +86,8 @@ echo ">>> No build marker found - performing full build"
 # =============================================================================
 # ccache configuration
 # =============================================================================
-export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/onemath-ccache}"
-export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-10G}"
+export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/adaptivecpp-ccache}"
+export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-20G}"
 export CCACHE_COMPRESS=1
 export CCACHE_COMPRESSLEVEL=6
 
@@ -105,62 +100,69 @@ ccache --show-stats || true
 echo "=============================================="
 
 # =============================================================================
-# CUDA configuration
+# Compiler configuration - use relocatable names (basename only)
 # =============================================================================
+# Extract just the compiler basename (not absolute path) for relocatability
+# This allows AdaptiveCpp to find compilers in PATH at runtime
+# Force use of clang compilers (not gcc) for AdaptiveCpp
+
+if [[ "${CXX}" == *clang* ]]; then
+    CXX_COMPILER=$(basename "${CXX}")
+else
+    # Force clang if CXX doesn't contain 'clang'
+    CXX_COMPILER="x86_64-conda-linux-gnu-clang++"
+fi
+
+if [[ "${CC}" == *clang* ]]; then
+    C_COMPILER=$(basename "${CC}")
+else
+    # Force clang if CC doesn't contain 'clang'
+    C_COMPILER="x86_64-conda-linux-gnu-clang"
+fi
+
+echo ">>> Compiler configuration:"
+echo "    Original CC:  ${CC}"
+echo "    Original CXX: ${CXX}"
+echo "    Relocatable C:   ${C_COMPILER}"
+echo "    Relocatable CXX: ${CXX_COMPILER}"
+
+# CUDA configuration
 CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
 if [[ ! -d "${CUDA_ROOT}" ]]; then
+    echo "Warning: CUDA root not found at ${CUDA_ROOT}, trying PREFIX"
     CUDA_ROOT="${PREFIX}"
 fi
 
-echo ">>> CUDA root: ${CUDA_ROOT}"
-
 # =============================================================================
-# AdaptiveCpp SYCL headers configuration
+# Configure AdaptiveCpp with CMake
 # =============================================================================
-# Add AdaptiveCpp include path to compiler flags to ensure CL/sycl.hpp is found
-export CXXFLAGS="${CXXFLAGS} --acpp-targets=generic"
-# export CFLAGS="${CFLAGS}"
-
-echo ">>> AdaptiveCpp include path added to compiler flags"
-echo "    CXXFLAGS: ${CXXFLAGS}"
-echo "    CFLAGS:   ${CFLAGS}"
-
-# =============================================================================
-# Configure oneMath with CMake
-# =============================================================================
-echo ">>> Configuring oneMath..."
+echo ">>> Configuring AdaptiveCpp..."
 
 mkdir -p "${BUILD_DIR}"
 
-# Only run configure if build.ninja doesn't exist (indicates valid build system)
-# We check build.ninja instead of CMakeCache.txt because CMakeCache.txt can exist
-# from a failed configure that didn't generate the build system
+# Only run configure if build.ninja doesn't exist
 if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
     echo ">>> Running cmake configure..."
     
-    # Clean any stale CMake state that might interfere
+    # Clean any stale CMake state
     rm -f "${BUILD_DIR}/CMakeCache.txt" 2>/dev/null || true
-
-    export CXX="${PREFIX}/bin/acpp"
     
-    cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
-        -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-        -DCMAKE_C_COMPILER="${CC}" \
-        -DCMAKE_CXX_COMPILER="${CXX}" \
-        -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-        -DCMAKE_C_FLAGS="${CFLAGS}" \
-        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DONEMATH_SYCL_IMPLEMENTATION=adaptivecpp \
-        -DACPP_TARGETS=generic \
-        -DTARGET_DOMAINS="blas" \
-        -DENABLE_MKLCPU_BACKEND=OFF \
-        -DENABLE_MKLGPU_BACKEND=OFF \
-        -DENABLE_GENERIC_BLAS_BACKEND=True \
-        -DCUDAToolkit_ROOT="${CUDA_ROOT}" \
-        -DBUILD_FUNCTIONAL_TESTS=OFF \
-        -DBUILD_EXAMPLES=OFF \
-        -DBUILD_DOC=OFF
+     cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
+         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+         -DCMAKE_C_COMPILER="${C_COMPILER}" \
+         -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
+         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+         -DCMAKE_BUILD_TYPE=Release \
+         -DACPP_TARGETS="generic" \
+         -DACPP_COMPILER_FEATURE_PROFILE=full \
+         -DWITH_CUDA_BACKEND=ON \
+         -DWITH_SSCP_COMPILER=ON \
+         -DWITH_ACCELERATED_CPU=ON \
+         -DWITH_STDPAR=ON \
+         -DWITH_LLVM_INTEGRATION=ON \
+         -DCUDAToolkit_ROOT="${CUDA_ROOT}" \
+         -DACPP_LLD_PATH="${BUILD_PREFIX}/bin/lld"
 else
     echo ">>> Skipping configure (using existing build.ninja)"
 fi
@@ -168,23 +170,16 @@ fi
 # =============================================================================
 # Build
 # =============================================================================
-echo ">>> Building oneMath..."
+echo ">>> Building AdaptiveCpp..."
 
 cmake --build "${BUILD_DIR}" -j "${CPU_COUNT}"
 
 # =============================================================================
 # Install
 # =============================================================================
-echo ">>> Installing oneMath to ${PREFIX}..."
+echo ">>> Installing AdaptiveCpp to ${PREFIX}..."
 
 cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
-
-# =============================================================================
-# Copy license (required by rattler-build)
-# =============================================================================
-echo ">>> Copying license..."
-cp "${REPO_DIR}/LICENSE" "${PREFIX}/LICENSE"
-echo "License copied to ${PREFIX}/LICENSE"
 
 # =============================================================================
 # Mark build as complete
@@ -200,7 +195,7 @@ echo ">>> ccache statistics after build:"
 ccache --show-stats || true
 
 echo "=============================================="
-echo "oneMath build complete!"
+echo "AdaptiveCpp build complete!"
 echo "Installed to: ${PREFIX}"
 echo "Build artifacts preserved in: ${BUILD_DIR}"
 echo "=============================================="

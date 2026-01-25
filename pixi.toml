@@ -27,11 +27,18 @@ INSTALL_PREFIX = "$HOME/.local/naga-sycl-toolkit"
 LLVM_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/llvm/repo"
 LLVM_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/llvm"
 
+# AdaptiveCpp source locations (populated by git submodule)
+ADAPTIVECPP_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/adaptivecpp/repo"
+ADAPTIVECPP_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/adaptivecpp"
+
 # oneAPI library source locations
 ONEMATH_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/onemath/repo"
 ONEMATH_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/onemath"
 ONEDPL_SOURCE_DIR = "$PIXI_PROJECT_ROOT/packages/onedpl/repo"
 ONEDPL_BUILD_DIR = "$PIXI_PROJECT_ROOT/build/onedpl"
+
+# SYCL implementation selection (default: dpcpp)
+SYCL_IMPLEMENTATION = "dpcpp"
 
 # ============================================================================
 # Shared Features
@@ -100,7 +107,9 @@ submodule-init = "git submodule update --init --recursive packages/llvm/repo"
 submodule-update = "git submodule update --remote packages/llvm/repo"
 
 # Build tasks (local development)
-configure = { cmd = "nu scripts/llvm/configure.nu", depends-on = ["submodule-init"] }
+configure = { cmd = "nu scripts/llvm/configure.nu", depends-on = [
+  "submodule-init",
+] }
 build = { cmd = "nu scripts/llvm/build.nu", depends-on = ["configure"] }
 install = { cmd = "nu scripts/llvm/install.nu", depends-on = ["build"] }
 test = { cmd = "nu scripts/llvm/test.nu", depends-on = ["install"] }
@@ -108,6 +117,49 @@ test = { cmd = "nu scripts/llvm/test.nu", depends-on = ["install"] }
 # Utility
 clean = "rm -rf $LLVM_BUILD_DIR"
 sycl-ls = { cmd = "$INSTALL_PREFIX/bin/sycl-ls", depends-on = ["install"] }
+
+# ============================================================================
+# AdaptiveCpp Build Feature
+# ============================================================================
+
+[feature.adaptivecpp]
+platforms = ["linux-64"]
+
+[feature.adaptivecpp.activation.env]
+# Build configuration - generic compilation mode (JIT at runtime)
+ACPP_TARGETS = "generic" # Generic JIT compilation (fast builds, runtime compilation)
+# Backends enabled at build-time via CMake: CUDA (-DWITH_CUDA_BACKEND=ON), OpenMP (implicit)
+
+[feature.adaptivecpp.activation]
+scripts = ["activation/linux.sh", "activation/adaptivecpp.sh"]
+
+# Clang compilers and LLVM dev tools - AdaptiveCpp builds against existing LLVM
+# Use LLVM 19 to match Intel LLVM version and avoid compatibility issues
+[feature.adaptivecpp.target.linux-64.dependencies]
+clangxx_linux-64 = ">=19,<20"
+clang_linux-64 = ">=19,<20"
+llvmdev = ">=19,<20"                      # LLVM development files (CMake configs, headers, llvm-config)
+clangdev = ">=19,<20"
+boost-cpp = ">=1.84"                      # Required by AdaptiveCpp runtime
+sysroot_linux-64 = ">=2.34"               # Provides standard C/C++ headers and libraries
+libstdcxx-devel_linux-64 = ">=15.2,<15.3" # C++ standard library headers matching Clang's expectations
+
+[feature.adaptivecpp.target.linux-64.tasks]
+# Submodule management
+submodule-init = "git submodule update --init --recursive packages/adaptivecpp/repo"
+submodule-update = "git submodule update --remote packages/adaptivecpp/repo"
+
+# Build tasks (local development)
+configure = { cmd = "nu scripts/adaptivecpp/configure.nu", depends-on = [
+  "submodule-init",
+] }
+build = { cmd = "nu scripts/adaptivecpp/build.nu", depends-on = ["configure"] }
+install = { cmd = "nu scripts/adaptivecpp/install.nu", depends-on = ["build"] }
+test = { cmd = "nu scripts/adaptivecpp/test.nu", depends-on = ["install"] }
+
+# Utility
+clean = "rm -rf $ADAPTIVECPP_BUILD_DIR"
+acpp-info = { cmd = "$INSTALL_PREFIX/bin/acpp-info", depends-on = ["install"] }
 
 # ============================================================================
 # oneAPI Libraries Feature (oneMath + oneDPL)
@@ -129,8 +181,25 @@ ONEMATH_SPARSE_BACKENDS = "cusparse"
 # oneDPL backend
 ONEDPL_BACKEND = "dpcpp"
 
+# SYCL implementation (can be overridden)
+SYCL_IMPLEMENTATION = "${SYCL_IMPLEMENTATION:-dpcpp}"
+
 [feature.oneapi.activation]
-scripts = ["activation/linux.sh"]
+scripts = ["activation/linux.sh", "activation/onemath.sh"]
+
+# ============================================================================
+# oneAPI with AdaptiveCpp Feature
+# ============================================================================
+
+[feature.oneapi-adaptivecpp-impl]
+platforms = ["linux-64"]
+
+[feature.oneapi-adaptivecpp-impl.activation.env]
+SYCL_IMPLEMENTATION = "adaptivecpp"
+DPCPP_ROOT = "$INSTALL_PREFIX"
+
+[feature.oneapi-adaptivecpp-impl.activation]
+scripts = ["activation/linux.sh", "activation/onemath.sh"]
 
 # ============================================================================
 # Development Environments
@@ -138,12 +207,35 @@ scripts = ["activation/linux.sh"]
 
 # Full development environment for LLVM + CUDA
 [environments.dev]
-features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", "llvm"]
+features = [
+  "build-tools",
+  "host-compiler",
+  "linker",
+  "cuda",
+  "llvm-host-deps",
+  "llvm",
+]
 
 # LLVM-only development (no oneAPI libraries)
 [environments.llvm]
-features = ["build-tools", "host-compiler", "linker", "cuda", "llvm-host-deps", "llvm"]
+features = [
+  "build-tools",
+  "host-compiler",
+  "linker",
+  "cuda",
+  "llvm-host-deps",
+  "llvm",
+]
+
+# AdaptiveCpp development (uses clang, not gcc)
+[environments.adaptivecpp]
+features = ["build-tools", "linker", "cuda", "llvm-host-deps", "adaptivecpp"]
 
 # oneAPI libraries development - oneMath + oneDPL (requires pre-built DPC++)
 [environments.oneapi]
 features = ["build-tools", "cuda", "oneapi"]
+
+# oneAPI libraries with AdaptiveCpp (requires pre-built AdaptiveCpp)
+[environments.oneapi-adaptivecpp]
+features = ["build-tools", "cuda", "oneapi-adaptivecpp-impl"]
+solve-group = "oneapi-adaptivecpp"

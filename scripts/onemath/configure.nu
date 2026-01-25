@@ -1,27 +1,47 @@
 #!/usr/bin/env nu
 # Configure oneMath (formerly oneMKL Interfaces) for building
-# Requires a pre-built DPC++ toolchain
+# Supports both DPC++ and AdaptiveCpp SYCL implementations
 
 def main [] {
     let source_dir = $env.ONEMATH_SOURCE_DIR
     let build_dir = $env.ONEMATH_BUILD_DIR
     let install_prefix = $env.INSTALL_PREFIX
+    
+    # Detect SYCL implementation
+    let sycl_impl = ($env.SYCL_IMPLEMENTATION? | default "dpcpp")
     let dpcpp_root = ($env.DPCPP_ROOT? | default $install_prefix)
+
+    # Find compiler based on implementation
+    let sycl_compiler = if $sycl_impl == "adaptivecpp" {
+        $"($dpcpp_root)/bin/acpp"
+    } else {
+        $"($dpcpp_root)/bin/clang++"
+    }
+    
+    let sycl_c_compiler = if $sycl_impl == "adaptivecpp" {
+        $"($dpcpp_root)/bin/acpp"
+    } else {
+        $"($dpcpp_root)/bin/clang"
+    }
 
     # Verify source exists
     if not ($source_dir | path exists) {
         print $"Error: oneMath source not found at ($source_dir)"
-        print "Run: pixi run -e onemath submodule-init"
+        print "Run: pixi run -e oneapi submodule-init"
         exit 1
     }
 
-    # Verify DPC++ is available
-    let clang = $"($dpcpp_root)/bin/clang++"
-    if not ($clang | path exists) {
-        print $"Error: DPC++ not found at ($dpcpp_root)"
+    # Verify SYCL compiler is available
+    if not ($sycl_compiler | path exists) {
+        print $"Error: SYCL compiler not found at ($sycl_compiler)"
+        print $"Implementation: ($sycl_impl)"
         print "Either:"
-        print "  1. Build and install DPC++ first: pixi run -e llvm install"
-        print "  2. Set DPCPP_ROOT to an existing DPC++ installation"
+        if $sycl_impl == "adaptivecpp" {
+            print "  1. Build and install AdaptiveCpp first: pixi run -e adaptivecpp install"
+        } else {
+            print "  1. Build and install DPC++ first: pixi run -e llvm install"
+        }
+        print "  2. Set DPCPP_ROOT to an existing installation"
         exit 1
     }
 
@@ -37,13 +57,21 @@ def main [] {
 
     # CUDA root from conda environment
     let cuda_root = ($env.CUDA_ROOT? | default $"($env.CONDA_PREFIX)/targets/x86_64-linux")
+    
+    # CMake SYCL implementation flag
+    let cmake_sycl_impl = if $sycl_impl == "adaptivecpp" {
+        "acpp"
+    } else {
+        "dpc++"
+    }
 
     print "="
     print "Configuring oneMath"
     print $"  Source: ($source_dir)"
     print $"  Build:  ($build_dir)"
     print $"  Install: ($install_prefix)"
-    print $"  DPC++: ($dpcpp_root)"
+    print $"  SYCL Implementation: ($sycl_impl)"
+    print $"  SYCL Compiler: ($sycl_compiler)"
     print ""
     print "  Backends:"
     print $"    BLAS:   ($blas_backends)"
@@ -59,13 +87,13 @@ def main [] {
         "-B" $build_dir
         "-G" "Ninja"
         $"-DCMAKE_INSTALL_PREFIX=($install_prefix)"
-        $"-DCMAKE_C_COMPILER=($dpcpp_root)/bin/clang"
-        $"-DCMAKE_CXX_COMPILER=($dpcpp_root)/bin/clang++"
+        $"-DCMAKE_C_COMPILER=($sycl_c_compiler)"
+        $"-DCMAKE_CXX_COMPILER=($sycl_compiler)"
         "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
         "-DCMAKE_C_COMPILER_LAUNCHER=ccache"
         
         # SYCL configuration
-        "-DSYCL_IMPLEMENTATION=dpc++"
+        $"-DSYCL_IMPLEMENTATION=($cmake_sycl_impl)"
         "-DENABLE_SYCL=ON"
         
         # Target device (NVIDIA GPU via CUDA)

@@ -53,19 +53,33 @@ BUILD_DIR="${REPO_DIR}/build"
 echo ">>> Build directory: ${BUILD_DIR}"
 
 # =============================================================================
-# Find SYCL compiler (from naga-sycl-toolkit package)
+# AdaptiveCpp SYCL headers configuration
 # =============================================================================
-SYCL_ROOT="${PREFIX}"
-SYCL_CXX="${SYCL_ROOT}/bin/clang++"
+# Add AdaptiveCpp include path to compiler flags to ensure sycl/sycl.hpp is found
+export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/AdaptiveCpp"
+export CFLAGS="${CFLAGS:-} -I${PREFIX}/include/AdaptiveCpp"
 
-if [[ ! -x "${SYCL_CXX}" ]]; then
-    echo "ERROR: SYCL compiler not found at ${SYCL_CXX}"
-    echo "Make sure naga-sycl-toolkit is in host requirements"
+echo ">>> AdaptiveCpp include path added to compiler flags"
+echo "    CXXFLAGS: ${CXXFLAGS}"
+echo "    CFLAGS:   ${CFLAGS}"
+echo "=============================================="
+
+# =============================================================================
+# Compiler configuration for AdaptiveCpp
+# =============================================================================
+# Use system C/C++ compilers provided by rattler-build (${CC} and ${CXX})
+# AdaptiveCpp headers will be found via CXXFLAGS set above
+SYCL_CXX="${CXX}"
+
+if [[ -z "${SYCL_CXX}" ]]; then
+    echo "ERROR: CXX compiler not set by build environment"
+    echo "This should be provided by rattler-build"
     exit 1
 fi
 
-echo ">>> SYCL compiler: ${SYCL_CXX}"
+echo ">>> Using compiler: ${SYCL_CXX}"
 "${SYCL_CXX}" --version
+echo "=============================================="
 
 # =============================================================================
 # Configure oneDPL with CMake
@@ -76,7 +90,10 @@ mkdir -p "${BUILD_DIR}"
 
 cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DCMAKE_CXX_COMPILER="${SYCL_CXX}" \
+    -DCMAKE_C_COMPILER="${CC}" \
+    -DCMAKE_CXX_COMPILER="${CXX}" \
+    -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+    -DCMAKE_C_FLAGS="${CFLAGS}" \
     -DONEDPL_BACKEND=dpcpp \
     -DONEDPL_USE_TBB_BACKEND=0 \
     -DBUILD_TESTING=OFF

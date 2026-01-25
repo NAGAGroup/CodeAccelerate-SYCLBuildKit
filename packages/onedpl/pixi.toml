@@ -26,17 +26,26 @@
 #
 # ============================================================================
 
+
 [workspace]
 channels = [
-  # Local channel with naga-sycl-toolkit packages (built from packages/llvm/)
-  "nagagroup",
-  # Pixi build backends
+  "https://prefix.dev/code-accelerate",
   "https://prefix.dev/pixi-build-backends",
-  # Main conda-forge channel
   "conda-forge",
 ]
 platforms = ["linux-64"]
 preview = ["pixi-build"]
+
+[package.build]
+backend = { name = "pixi-build-rattler-build", version = "*", channels = [
+  "https://prefix.dev/code-accelerate",
+  "https://prefix.dev/conda-forge",
+] }
+
+
+[package.build.config]
+experimental = false
+
 
 [system-requirements]
 libc = "2.34"
@@ -59,10 +68,3 @@ cd ../.. && git submodule update --init packages/onedpl/repo
 
 [environments]
 init = { features = ["init"], no-default-feature = true }
-
-[package]
-name = "naga-onedpl"
-version = "2025.12.1"
-
-[package.build]
-backend = { name = "pixi-build-rattler-build", version = "*" }

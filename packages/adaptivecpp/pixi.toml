@@ -1,23 +1,20 @@
-# naga-onemath Workspace
-# SYCL math library with NVIDIA CUDA backend support
+# naga-adaptivecpp-toolkit Workspace
+# AdaptiveCpp SYCL compiler with NVIDIA CUDA support
 #
 # ============================================================================
 # WORKFLOW
 # ============================================================================
 #
 # First time setup (creates recipe symlinks):
-#   pixi run -e init setup
-#
-# Initialize submodule:
-#   pixi run -e init submodule-init
+#   pixi run -e acpp-init setup
 #
 # Build and install:
 #   pixi install
 #
 # This builds three packages from one recipe:
-#   - naga-onemath-libs:  Runtime libraries only
-#   - naga-onemath-devel: Development files (headers, cmake modules)
-#   - naga-onemath:       Full package (meta-package)
+#   - naga-adaptivecpp-toolkit-libs:  Runtime libraries only (libacpp-rt.so, etc.)
+#   - naga-adaptivecpp-toolkit-devel: Development files (headers, cmake modules)
+#   - naga-adaptivecpp-toolkit:       Full toolkit with compiler and tools
 #
 # ============================================================================
 # BUILD STRATEGY
@@ -25,36 +22,30 @@
 #
 # The build runs directly in the repo/ directory (not a copy) to enable
 # incremental builds. Subsequent builds only recompile changed files.
-#
-# IMPORTANT: The naga-sycl-toolkit package must be built first from packages/llvm/
-# The local channel is included to provide the naga-sycl-toolkit packages during build.
+# A full initial build takes ~15-30 minutes; incremental builds are much faster.
 #
 # ============================================================================
 
 [workspace]
-channels = [
-  # Local channel with naga-sycl-toolkit packages (built from packages/llvm/)
-  "https://prefix.dev/code-accelerate",
-  # Pixi build backends
-  "https://prefix.dev/pixi-build-backends",
-  # Main conda-forge channel
-  "conda-forge",
-]
+channels = ["https://prefix.dev/pixi-build-backends", "conda-forge"]
 platforms = ["linux-64"]
 preview = ["pixi-build"]
 
 [package.build]
 backend = { name = "pixi-build-rattler-build", version = "*", channels = [
-  "https://prefix.dev/code-accelerate",
   "https://prefix.dev/conda-forge",
 ] }
+
+
+[package.build.config]
+experimental = false
 
 [system-requirements]
 libc = "2.34"
 
-# Install the full naga-onemath package (which depends on devel -> libs)
+# Install the full toolkit (which depends on devel -> libs)
 [dependencies]
-naga-onemath = { path = "onemath" }
+naga-adaptivecpp-toolkit = { path = "toolkit" }
 
 # ============================================================================
 # Init environment (no default feature - doesn't trigger package builds)
@@ -63,20 +54,16 @@ naga-onemath = { path = "onemath" }
 # The symlinks are a workaround until pixi-build-rattler-build supports
 # custom recipe paths. See: https://github.com/prefix-dev/pixi-build-backends/issues/471
 
-[feature.init]
+[feature.acpp-init]
 platforms = ["linux-64"]
 
-[feature.init.tasks]
+[feature.acpp-init.tasks]
 setup = """
 ln -sfn ../recipe libs/recipe && \
 ln -sfn ../recipe devel/recipe && \
-ln -sfn ../recipe onemath/recipe && \
+ln -sfn ../recipe toolkit/recipe && \
 echo "Recipe symlinks created successfully"
 """
 
-submodule-init = """
-cd ../.. && git submodule update --init packages/onemath/repo
-"""
-
 [environments]
-init = { features = ["init"], no-default-feature = true }
+acpp-init = { features = ["acpp-init"], no-default-feature = true }

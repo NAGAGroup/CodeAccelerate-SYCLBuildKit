@@ -1,0 +1,30 @@
+# Build variants for AdaptiveCpp
+# Currently using generic compilation mode only
+
+# CUDA version - align with system CUDA
+cuda_version:
+  - "12.6"
+
+cxx_compiler:
+  - "clangxx"
+
+c_compiler:
+  - "clang"
+
+cxx_compiler_version:
+  - ">=19,<20"
+
+c_compiler_version:
+  - ">=19,<20"
+
+c_stdlib:
+  - "sysroot"
+
+c_stdlib_version:
+  - ">=2.34"
+
+cxx_stdlib:
+  - "libstdcxx-devel"
+
+cxx_stdlib_version:
+  - ">=15.2,<15.3"
