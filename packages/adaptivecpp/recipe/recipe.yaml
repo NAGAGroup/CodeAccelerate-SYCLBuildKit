@@ -17,7 +17,7 @@ schema_version: 1
 
 context:
   name: naga-adaptivecpp-toolkit
-  version: "2026.1.1"
+  version: "2026.1.2"
 
 recipe:
   name: ${{ name }}
@@ -45,6 +45,10 @@ outputs:
       files:
         # Runtime shared libraries
         - lib/*.so*
+        # Backend runtime plugins (CUDA, OpenCL, OpenMP)
+        - lib/hipSYCL/*.so*
+        # LLVM bitcode files for JIT compilation (PTX, SPIRV, host)
+        - lib/hipSYCL/bitcode/**
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -66,11 +70,17 @@ outputs:
         - clangdev ${{ cxx_compiler_version }}
       run:
         - cuda-cudart >=12.6,<13
+        - numactl
+        - ocl-icd
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:
       - script:
           - test -f $PREFIX/lib/libacpp-rt.so
+          - test -f $PREFIX/lib/hipSYCL/librt-backend-cuda.so
+          - test -f $PREFIX/lib/hipSYCL/librt-backend-omp.so
+          - test -f $PREFIX/lib/hipSYCL/librt-backend-ocl.so
+          - test -f $PREFIX/lib/hipSYCL/bitcode/libkernel-sscp-ptx-full.bc
 
   # ==========================================================================
   # Development files (headers, cmake files)
