@@ -31,10 +31,9 @@ channels = ["https://prefix.dev/pixi-build-backends", "conda-forge"]
 platforms = ["linux-64"]
 preview = ["pixi-build"]
 
+
 [package.build]
-backend = { name = "pixi-build-rattler-build", version = "*", channels = [
-  "https://prefix.dev/conda-forge",
-] }
+backend = { name = "pixi-build-rattler-build", version = "*" }
 
 
 [package.build.config]
@@ -43,27 +42,14 @@ experimental = false
 [system-requirements]
 libc = "2.34"
 
-# Install the full toolkit (which depends on devel -> libs)
+[target.linux-64.dependencies]
+# naga-adaptivecpp-toolkit = { path = "." }
+sysroot_linux-64 = ">=2.34"
+
 [dependencies]
-naga-adaptivecpp-toolkit = { path = "toolkit" }
+naga-adaptivecpp-toolkit-libs = { url = "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/adaptivecpp/naga-adaptivecpp-toolkit-libs-2026.2.17-h9f6055b_0.conda" }
+naga-adaptivecpp-toolkit = { url = "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/adaptivecpp/naga-adaptivecpp-toolkit-2026.2.17-h9f6055b_0.conda" }
+naga-adaptivecpp-toolkit-devel = { url = "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/adaptivecpp/naga-adaptivecpp-toolkit-devel-2026.2.17-h9f6055b_0.conda" }
 
-# ============================================================================
-# Init environment (no default feature - doesn't trigger package builds)
-# ============================================================================
-# This environment is used to set up recipe symlinks before the first build.
-# The symlinks are a workaround until pixi-build-rattler-build supports
-# custom recipe paths. See: https://github.com/prefix-dev/pixi-build-backends/issues/471
-
-[feature.acpp-init]
-platforms = ["linux-64"]
-
-[feature.acpp-init.tasks]
-setup = """
-ln -sfn ../recipe libs/recipe && \
-ln -sfn ../recipe devel/recipe && \
-ln -sfn ../recipe toolkit/recipe && \
-echo "Recipe symlinks created successfully"
-"""
-
-[environments]
-acpp-init = { features = ["acpp-init"], no-default-feature = true }
+[tasks]
+repos-init = { cmd = "nu scripts/init-repos.nu", description = "Initialize git repositories from .repos.toml" }
