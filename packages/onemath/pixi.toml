@@ -26,14 +26,12 @@
 # The build runs directly in the repo/ directory (not a copy) to enable
 # incremental builds. Subsequent builds only recompile changed files.
 #
-# IMPORTANT: The naga-sycl-toolkit package must be built first from packages/llvm/
-# The local channel is included to provide the naga-sycl-toolkit packages during build.
-#
-# ============================================================================
+# IMPORTANT: The AdaptiveCPP package must be built and installed first.
+# The local channel is included to provide pre-built packages during build.
 
 [workspace]
 channels = [
-  # Local channel with naga-sycl-toolkit packages (built from packages/llvm/)
+  # Local channel with pre-built packages
   "https://prefix.dev/code-accelerate",
   # Pixi build backends
   "https://prefix.dev/pixi-build-backends",

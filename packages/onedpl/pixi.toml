@@ -21,8 +21,8 @@
 # oneDPL is header-only, so the "build" just runs CMake configure + install
 # to generate proper CMake config files. No actual compilation needed.
 #
-# IMPORTANT: The naga-sycl-toolkit package must be built first from packages/llvm/
-# The local channel is included to provide the naga-sycl-toolkit packages during build.
+# IMPORTANT: The AdaptiveCPP package must be built and installed first.
+# The local channel is included to provide pre-built packages during build.
 #
 # ============================================================================
 
