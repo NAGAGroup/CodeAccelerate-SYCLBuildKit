@@ -17,7 +17,7 @@ schema_version: 1
 
 context:
   name: naga-onemath
-  version: "2026.1.1"
+  version: "2026.2.16"
 
 recipe:
   name: ${{ name }}
@@ -47,23 +47,20 @@ outputs:
         - lib/*.so*
     requirements:
       build:
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
+        - naga-adaptivecpp-toolkit >=2026.2.16,<2027
         - ${{ stdlib('c') }}
         - cmake >=3.24
         - ninja >=1.12
         - ccache
         - pkg-config
         - git
-      host:
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
         # CUDA dependencies - cuda-toolkit metapackage handles version coordination
         # cuda-version pins the CUDA version, cuda-toolkit pulls all dev libraries
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - naga-adaptivecpp-toolkit-libs >=2026.1.1,<2026.2
+        - ${{ stdlib('c') }}
+        - naga-adaptivecpp-toolkit-libs >=2026.2.16,<2027
         # Runtime CUDA libraries (pulled transitively via cuda-toolkit's cuda-libraries)
         - cuda-cudart
       run_exports:
@@ -89,24 +86,20 @@ outputs:
         - lib/pkgconfig/**
     requirements:
       build:
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
+        - naga-adaptivecpp-toolkit >=2026.2.16,<2027
         - ${{ stdlib('c') }}
         - cmake >=3.24
         - ninja >=1.12
         - ccache
         - pkg-config
         - git
-      host:
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
         # CUDA dependencies - cuda-toolkit metapackage handles version coordination
         # cuda-version pins the CUDA version, cuda-toolkit pulls all dev libraries
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - ${{ pin_subpackage(name ~ '-libs', exact=True) }}
-        - naga-adaptivecpp-toolkit-devel >=2026.1.1,<2026.2
+        - ${{ name }}-libs ==${{ version }}
+        - naga-adaptivecpp-toolkit-devel >=2026.2.16,<2027
     tests:
       - script:
           - test -d $PREFIX/include/oneapi/math || test -d $PREFIX/include/oneapi/mkl
@@ -123,24 +116,21 @@ outputs:
       files: []
     requirements:
       build:
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
+        - naga-adaptivecpp-toolkit >=2026.2.16,<2027
         - ${{ stdlib('c') }}
         - cmake >=3.24
         - ninja >=1.12
         - ccache
         - pkg-config
         - git
-      host:
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
         # CUDA dependencies - cuda-toolkit metapackage handles version coordination
         # cuda-version pins the CUDA version, cuda-toolkit pulls all dev libraries
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - ${{ pin_subpackage(name ~ '-devel', exact=True) }}
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
+        - ${{ name }}-libs ==${{ version }}
+        - ${{ name }}-devel ==${{ version }}
+        - naga-adaptivecpp-toolkit >=2026.2.16,<2027
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:

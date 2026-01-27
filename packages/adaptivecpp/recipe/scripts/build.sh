@@ -1,201 +1,134 @@
 #!/bin/bash
-# Build script for AdaptiveCpp rattler-build recipe
-#
-# OPTIMIZATION: This recipe produces 3 packages (libs, devel, toolkit) from one
-# source. To avoid rebuilding 3 times, we:
-#   1. Build once on first package, touch a marker file
-#   2. Subsequent packages detect marker, skip build, just re-install to PREFIX
-#
-# Environment variables provided by rattler-build:
-#   SRC_DIR     - Source directory (dummy - we use RECIPE_DIR/../repo instead)
-#   PREFIX      - Install prefix for this package
-#   BUILD_PREFIX - Build tools prefix
-#   RECIPE_DIR  - Recipe directory
-#   CPU_COUNT   - Number of CPUs available
+set -euo pipefail
 
-set -exuo pipefail
-
-echo "=============================================="
-echo "Building AdaptiveCpp SYCL Toolkit"
-echo "=============================================="
-echo "SRC_DIR:      ${SRC_DIR}"
-echo "PREFIX:       ${PREFIX}"
-echo "BUILD_PREFIX: ${BUILD_PREFIX}"
-echo "RECIPE_DIR:   ${RECIPE_DIR}"
-echo "CPU_COUNT:    ${CPU_COUNT}"
-echo "=============================================="
-
-# =============================================================================
-# Source and build directories
-# =============================================================================
-# SRC_DIR points to a dummy directory (to avoid copying the repo)
-# The REAL source is relative to the actual recipe directory.
-#
-# RECIPE_DIR may be a symlink (e.g., devel/recipe -> ../recipe), so we need
-# to resolve it to find the real location and then navigate to repo/
+# ============================================================================
+# Section 1: Setup and Path Resolution
+# ============================================================================
 REAL_RECIPE_DIR="$(cd "${RECIPE_DIR}" && pwd -P)"
-REPO_DIR="$(dirname "${REAL_RECIPE_DIR}")/repo"
+PACKAGE_DIR=$(cd "$REAL_RECIPE_DIR/.." && pwd -P)
+LLVM_SOURCE_DIR="$PACKAGE_DIR/llvm-project"
+ACPP_SOURCE_DIR="$LLVM_SOURCE_DIR/AdaptiveCpp"
+BUILD_DIR="$PACKAGE_DIR/llvm-project/build"
+BUILD_MARKER="$BUILD_DIR/.build_complete"
 
-if [[ ! -d "${REPO_DIR}" ]]; then
-    echo "ERROR: Repository not found at ${REPO_DIR}"
-    echo "RECIPE_DIR:      ${RECIPE_DIR}"
-    echo "REAL_RECIPE_DIR: ${REAL_RECIPE_DIR}"
-    echo ""
-    echo "Make sure the submodule is initialized:"
-    echo "  git submodule update --init packages/adaptivecpp/repo"
+echo "LLVM Source:  $LLVM_SOURCE_DIR"
+echo "ACPP Source:  $ACPP_SOURCE_DIR"
+echo "Build Dir:    $BUILD_DIR"
+echo "Install:      $PREFIX"
+
+# ============================================================================
+# Section 2: Verify Sources
+# ============================================================================
+if [ ! -d "$LLVM_SOURCE_DIR/llvm" ] || [ ! -d "$ACPP_SOURCE_DIR" ]; then
+    echo "ERROR: Sources not found"
     exit 1
 fi
 
-echo ">>> RECIPE_DIR (may be symlink): ${RECIPE_DIR}"
-echo ">>> REAL_RECIPE_DIR:             ${REAL_RECIPE_DIR}"
-echo ">>> Using source directory:      ${REPO_DIR}"
-
-# Build directory - inside the repo for persistence across package builds
-BUILD_DIR="${REPO_DIR}/build"
-
-# Marker file to indicate build is complete
-BUILD_MARKER="${BUILD_DIR}/.build_complete"
-
-echo ">>> Build directory: ${BUILD_DIR}"
-
-# =============================================================================
-# Check if build is already complete (optimization for multi-output recipe)
-# =============================================================================
-if [[ -f "${BUILD_MARKER}" ]]; then
-    echo "=============================================="
-    echo ">>> BUILD ALREADY COMPLETE - skipping to install"
-    echo ">>> Previous build detected via marker: ${BUILD_MARKER}"
-    echo "=============================================="
+# ============================================================================
+# Section 3: Multi-Output Optimization (check build marker)
+# ============================================================================
+if [ -f "$BUILD_MARKER" ]; then
+    echo "Build complete - running install only"
+    cmake --install "$BUILD_DIR" --prefix "$PREFIX"
+    # Skip to activation script installation (Section 7)
+    mkdir -p "$PREFIX/etc/conda/activate.d"
+    mkdir -p "$PREFIX/etc/conda/deactivate.d"
     
-    # Just re-run install with this package's PREFIX
-    echo ">>> Installing to ${PREFIX}..."
-    cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
+    cp "$RECIPE_DIR/scripts/activate.sh" \
+       "$PREFIX/etc/conda/activate.d/~~activate-acpp.sh"
+    cp "$RECIPE_DIR/scripts/deactivate.sh" \
+       "$PREFIX/etc/conda/deactivate.d/~~deactivate-acpp.sh"
     
-    echo "=============================================="
-    echo "AdaptiveCpp install complete (reused existing build)"
-    echo "Installed to: ${PREFIX}"
-    echo "=============================================="
+    chmod +x "$PREFIX/etc/conda/activate.d/~~activate-acpp.sh"
+    chmod +x "$PREFIX/etc/conda/deactivate.d/~~deactivate-acpp.sh"
     exit 0
 fi
 
-# =============================================================================
-# Full build (first package only)
-# =============================================================================
-echo ">>> No build marker found - performing full build"
-
-# =============================================================================
-# ccache configuration
-# =============================================================================
-export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/adaptivecpp-ccache}"
+# ============================================================================
+# Section 4: Configure + Build
+# ============================================================================
+export CCACHE_DIR="${CCACHE_DIR:-$HOME/.ccache}"
 export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-20G}"
-export CCACHE_COMPRESS=1
-export CCACHE_COMPRESSLEVEL=6
 
-mkdir -p "${CCACHE_DIR}"
+# Use GCC from conda environment (via $CC and $CXX)
+C_COMPILER="${CC}"
+CXX_COMPILER="${CXX}"
 
-echo ">>> ccache configuration:"
-echo "    CCACHE_DIR:     ${CCACHE_DIR}"
-echo "    CCACHE_MAXSIZE: ${CCACHE_MAXSIZE}"
-ccache --show-stats || true
-echo "=============================================="
+# Toolchain host triple for cross-compilation support
+HOST_TRIPLE="${HOST:-x86_64-conda-linux-gnu}"
 
-# =============================================================================
-# Compiler configuration - use relocatable names (basename only)
-# =============================================================================
-# Extract just the compiler basename (not absolute path) for relocatability
-# This allows AdaptiveCpp to find compilers in PATH at runtime
-# Force use of clang compilers (not gcc) for AdaptiveCpp
+mkdir -p "$BUILD_DIR"
 
-if [[ "${CXX}" == *clang* ]]; then
-    CXX_COMPILER=$(basename "${CXX}")
-else
-    # Force clang if CXX doesn't contain 'clang'
-    CXX_COMPILER="x86_64-conda-linux-gnu-clang++"
-fi
+export CXXFLAGS=
+export CFLAGS=
 
-if [[ "${CC}" == *clang* ]]; then
-    C_COMPILER=$(basename "${CC}")
-else
-    # Force clang if CC doesn't contain 'clang'
-    C_COMPILER="x86_64-conda-linux-gnu-clang"
-fi
-
-echo ">>> Compiler configuration:"
-echo "    Original CC:  ${CC}"
-echo "    Original CXX: ${CXX}"
-echo "    Relocatable C:   ${C_COMPILER}"
-echo "    Relocatable CXX: ${CXX_COMPILER}"
-
-# CUDA configuration
-CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
-if [[ ! -d "${CUDA_ROOT}" ]]; then
-    echo "Warning: CUDA root not found at ${CUDA_ROOT}, trying PREFIX"
-    CUDA_ROOT="${PREFIX}"
-fi
-
-# =============================================================================
-# Configure AdaptiveCpp with CMake
-# =============================================================================
-echo ">>> Configuring AdaptiveCpp..."
-
-mkdir -p "${BUILD_DIR}"
-
-# Only run configure if build.ninja doesn't exist
-if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
-    echo ">>> Running cmake configure..."
+# Configure (if not already configured)
+if [ ! -f "$BUILD_DIR/build.ninja" ]; then
+    # Use GCC as bootstrap compiler (standard practice)
+    # CMAKE_SYSROOT and compiler target still needed for conda pseudo-cross-compilation
     
-    # Clean any stale CMake state
-    rm -f "${BUILD_DIR}/CMakeCache.txt" 2>/dev/null || true
-    
-     cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
-         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-         -DCMAKE_C_COMPILER="${C_COMPILER}" \
-         -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
-         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-         -DCMAKE_BUILD_TYPE=Release \
-         -DACPP_TARGETS="generic" \
-         -DACPP_COMPILER_FEATURE_PROFILE=full \
-         -DWITH_CUDA_BACKEND=ON \
-         -DWITH_SSCP_COMPILER=ON \
-         -DWITH_ACCELERATED_CPU=ON \
-         -DWITH_STDPAR=ON \
-         -DWITH_LLVM_INTEGRATION=ON \
-         -DCUDAToolkit_ROOT="${CUDA_ROOT}" \
-         -DACPP_LLD_PATH="${BUILD_PREFIX}/bin/lld"
-else
-    echo ">>> Skipping configure (using existing build.ninja)"
+    cmake -S "$LLVM_SOURCE_DIR/llvm" -B "$BUILD_DIR" \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+        -DCMAKE_C_COMPILER="$(basename $C_COMPILER)" \
+        -DCMAKE_CXX_COMPILER="$(basename $CXX_COMPILER)" \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_SYSROOT="${BUILD_PREFIX}/${HOST_TRIPLE}/sysroot" \
+        -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" \
+        -DLLVM_ENABLE_PROJECTS="clang;openmp;lld" \
+        -DLLVM_BUILD_LLVM_DYLIB=ON \
+        -DLLVM_LINK_LLVM_DYLIB=ON \
+        -DLLVM_ENABLE_ASSERTIONS=OFF -DLLVM_ENABLE_DUMP=OFF \
+        -DLLVM_PARALLEL_LINK_JOBS="${CPU_COUNT:-4}" \
+        -DLLVM_EXTERNAL_PROJECTS=AdaptiveCpp \
+        -DLLVM_EXTERNAL_ADAPTIVECPP_SOURCE_DIR="$ACPP_SOURCE_DIR" \
+        -DLLVM_ADAPTIVECPP_LINK_INTO_TOOLS=ON \
+        -DACPP_TARGETS=generic \
+        -DWITH_CUDA_BACKEND=ON \
+        -DACPP_COMPILER_FEATURE_PROFILE=full \
+        $CMAKE_ARGS
+        # -DCMAKE_C_COMPILER_TARGET="${HOST_TRIPLE}" \
+        # -DCMAKE_CXX_COMPILER_TARGET="${HOST_TRIPLE}" \
+        # -DLLVM_DEFAULT_TARGET_TRIPLE="${HOST_TRIPLE}" \
+        # -DLLVM_HOST_TRIPLE="${HOST_TRIPLE}" \
 fi
 
-# =============================================================================
 # Build
-# =============================================================================
-echo ">>> Building AdaptiveCpp..."
+cmake --build "$BUILD_DIR" -j "${CPU_COUNT:-4}"
 
-cmake --build "${BUILD_DIR}" -j "${CPU_COUNT}"
+# ============================================================================
+# Section 5: Install
+# ============================================================================
+cmake --install "$BUILD_DIR" --prefix "$PREFIX"
 
-# =============================================================================
-# Install
-# =============================================================================
-echo ">>> Installing AdaptiveCpp to ${PREFIX}..."
+# ===========================================================================
+# Section 5b: Post-Install Path Adjustments
+# ==========================================================================
+find "$PREFIX/etc/AdaptiveCpp" -type f -name "*.json" -exec sed -i "s|${BUILD_PREFIX}|\$ACPP_PATH|g" {} +
 
-cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
+# ============================================================================
+# Section 6: IDE Tooling Compatibility (symlinks + clang.cfg)
+# ============================================================================
+BUILD_TRIPLET="${HOST_TRIPLE}"
 
-# =============================================================================
-# Mark build as complete
-# =============================================================================
-echo ">>> Marking build as complete..."
-touch "${BUILD_MARKER}"
-echo "Created marker: ${BUILD_MARKER}"
+# ============================================================================
+# Section 7: Install Activation Scripts
+# ============================================================================
+mkdir -p "$PREFIX/etc/conda/activate.d"
+mkdir -p "$PREFIX/etc/conda/deactivate.d"
 
-# =============================================================================
-# Show ccache stats
-# =============================================================================
-echo ">>> ccache statistics after build:"
-ccache --show-stats || true
+cp "$RECIPE_DIR/scripts/activate.sh" \
+   "$PREFIX/etc/conda/activate.d/~~activate-acpp.sh"
+cp "$RECIPE_DIR/scripts/deactivate.sh" \
+   "$PREFIX/etc/conda/deactivate.d/~~deactivate-acpp.sh"
 
-echo "=============================================="
-echo "AdaptiveCpp build complete!"
-echo "Installed to: ${PREFIX}"
-echo "Build artifacts preserved in: ${BUILD_DIR}"
-echo "=============================================="
+chmod +x "$PREFIX/etc/conda/activate.d/~~activate-acpp.sh"
+chmod +x "$PREFIX/etc/conda/deactivate.d/~~deactivate-acpp.sh"
+
+# ============================================================================
+# Section 8: Create Build Marker
+# ============================================================================
+touch "$BUILD_MARKER"
+echo "Build complete."

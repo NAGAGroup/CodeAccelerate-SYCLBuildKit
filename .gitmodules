@@ -7,6 +7,3 @@
 [submodule "packages/onedpl/repo"]
 	path = packages/onedpl/repo
 	url = https://github.com/uxlfoundation/oneDPL.git
-[submodule "packages/adaptivecpp/repo"]
-	path = packages/adaptivecpp/repo
-	url = https://github.com/AdaptiveCpp/AdaptiveCpp.git

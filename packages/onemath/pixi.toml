@@ -53,8 +53,8 @@ backend = { name = "pixi-build-rattler-build", version = "*", channels = [
 libc = "2.34"
 
 # Install the full naga-onemath package (which depends on devel -> libs)
-[dependencies]
-naga-onemath = { path = "onemath" }
+[target.linux-64.dependencies]
+naga-adaptivecpp-toolkit = ">=2026.2.14,<2027"
 
 # ============================================================================
 # Init environment (no default feature - doesn't trigger package builds)

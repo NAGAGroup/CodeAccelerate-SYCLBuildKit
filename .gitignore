@@ -6,3 +6,4 @@ packages/llvm/build
 *.conda
 packages/llvm/install
 build
+packages/adaptivecpp/llvm-project

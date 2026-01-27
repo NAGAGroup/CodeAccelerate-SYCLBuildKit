@@ -1,30 +1,19 @@
-# AdaptiveCpp Toolkit Recipe for rattler-build
-# AdaptiveCpp SYCL compiler with NVIDIA CUDA support (generic compilation mode)
-#
-# Build with:
-#   cd packages/adaptivecpp && pixi build
-#
-# Or directly with rattler-build:
-#   rattler-build build -r recipe/recipe.yaml
-#
-# Build Strategy:
-#   This recipe builds directly in the repo directory (not a copy) to enable
-#   incremental builds. Each output runs the build script, but since we build
-#   in-place, subsequent outputs just do a quick incremental "rebuild" (no-op
-#   if nothing changed) and then install to PREFIX.
-
 schema_version: 1
 
 context:
   name: naga-adaptivecpp-toolkit
-  version: "2026.1.2"
+  version: "2026.2.17"
 
 recipe:
   name: ${{ name }}
   version: ${{ version }}
 
+# NOTE: Channels must be specified at build-time via CLI flags:
+#   rattler-build build -c conda-forge
+# This is required to resolve compiler('c') and compiler('cxx') dependencies.
+
 source:
-  # Use a minimal dummy directory to avoid copying the full repo
+  # Use a minimal dummy directory to avoid copying files
   # The build script uses RECIPE_DIR/../repo as the actual source
   path: ../src
 
@@ -34,169 +23,113 @@ build:
     - osx
 
 outputs:
-  # ==========================================================================
-  # Runtime libraries only (smallest footprint)
-  # ==========================================================================
+  # Output 1: Runtime libraries
   - package:
       name: ${{ name }}-libs
       version: ${{ version }}
+
     build:
       script: scripts/build.sh
       files:
-        # Runtime shared libraries
-        - lib/*.so*
-        # Backend runtime plugins (CUDA, OpenCL, OpenMP)
-        - lib/hipSYCL/*.so*
-        # LLVM bitcode files for JIT compilation (PTX, SPIRV, host)
-        - lib/hipSYCL/bitcode/**
+        - lib/**/*.so*
+        - etc/AdaptiveCpp/*
     requirements:
       build:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
-        - ${{ stdlib('cxx') }}
+        - cuda >=12,<13
         - cmake >=3.24
         - ninja >=1.12
         - python >=3.10
         - git
         - ccache
-        - lld >=19
-        - llvmdev ${{ cxx_compiler_version }}
-      host:
-        - ${{ stdlib('c') }}
-        - cuda-toolkit >=12.6,<13
+        - lld >=18
         - boost-cpp >=1.84
-        - llvmdev ${{ cxx_compiler_version }}
-        - clangdev ${{ cxx_compiler_version }}
+        - llvmdev >=18,<19
       run:
-        - cuda-cudart >=12.6,<13
-        - numactl
-        - ocl-icd
+        - ${{ stdlib('c') }}
+        - libstdcxx ${{ cxx_compiler_version }}
+        - boost-cpp >=1.84
+        - libedit
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
+
     tests:
       - script:
-          - test -f $PREFIX/lib/libacpp-rt.so
-          - test -f $PREFIX/lib/hipSYCL/librt-backend-cuda.so
-          - test -f $PREFIX/lib/hipSYCL/librt-backend-omp.so
-          - test -f $PREFIX/lib/hipSYCL/librt-backend-ocl.so
-          - test -f $PREFIX/lib/hipSYCL/bitcode/libkernel-sscp-ptx-full.bc
+          - test -f $PREFIX/lib/libacpp_runtime.so
 
-  # ==========================================================================
-  # Development files (headers, cmake files)
-  # ==========================================================================
+  # Output 2: Development headers
   - package:
       name: ${{ name }}-devel
       version: ${{ version }}
+
     build:
       script: scripts/build.sh
       files:
-        # All headers
-        - include/**
-        # CMake modules
-        - lib/cmake/**
-        # pkg-config files (if any)
-        - lib/pkgconfig/**
+        - lib/cmake/*
+        - include/*
+
     requirements:
       build:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
-        - ${{ stdlib('cxx') }}
+        - cuda >=12,<13
         - cmake >=3.24
         - ninja >=1.12
         - python >=3.10
         - git
         - ccache
-        - lld >=19
-        - llvmdev ${{ cxx_compiler_version }}
-      host:
-        - ${{ stdlib('c') }}
-        - cuda-toolkit >=12.6,<13
+        - lld >=18
         - boost-cpp >=1.84
-        - llvmdev ${{ cxx_compiler_version }}
-        - clangdev ${{ cxx_compiler_version }}
+        - llvmdev >=18,<19
       run:
-        - ${{ name }}-libs == ${{ version }}
-        - cuda-cudart-dev >=12.6,<13
+        - ${{ name }}-libs ==${{ version }}
+        - boost-cpp >=1.84
+        - libstdcxx-devel_linux-64 ${{ cxx_compiler_version }}
+
     tests:
       - script:
-          - test -d $PREFIX/include/sycl
-          - test -f $PREFIX/lib/cmake/AdaptiveCpp/AdaptiveCppConfig.cmake
+          - test -f $PREFIX/include/sycl/sycl.hpp
+          - test -d $PREFIX/lib/cmake/AdaptiveCpp
 
-  # ==========================================================================
-  # Full toolkit (compiler, tools, everything)
-  # ==========================================================================
+  # Output 3: Full toolkit
   - package:
       name: ${{ name }}
       version: ${{ version }}
+
     build:
       script: scripts/build.sh
       files:
-        # All binaries
-        - bin/**
-        # Share directory (data files, docs)
-        - share/**
-        # Activation scripts for environment setup
-        - etc/conda/**
-        - etc/AdaptiveCpp/**
+        exclude:
+          - lib/cmake/*
+          - include/*
+          - lib/**/*.so*
+          - etc/AdaptiveCpp/*
     requirements:
       build:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
-        - ${{ stdlib('cxx') }}
+        - cuda >=12,<13
         - cmake >=3.24
         - ninja >=1.12
         - python >=3.10
         - git
         - ccache
-        - lld >=19
-        - llvmdev ${{ cxx_compiler_version }}
-      host:
-        - ${{ stdlib('c') }}
-        - cuda-toolkit >=12.6,<13
+        - lld >=18
         - boost-cpp >=1.84
-        - llvmdev ${{ cxx_compiler_version }}
-        - clangdev ${{ cxx_compiler_version }}
+        - llvmdev >=18,<19
       run:
-        - ${{ name }}-devel == ${{ version }}
-        # Compilers needed at runtime for JIT compilation
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
-        - llvm ${{ cxx_compiler_version }}
+        - ${{ name }}-libs ==${{ version }}
+        - ${{ name }}-devel ==${{ version }}
+        - python >=3.10
+        - gcc ${{ c_compiler_version }}
+        - gxx ${{ cxx_compiler_version }}
+
     tests:
       - script:
-          - test -f $PREFIX/bin/acpp
-          - test -f $PREFIX/bin/acpp-info
-          - $PREFIX/bin/acpp --version
-          - $PREFIX/bin/acpp-info || echo "acpp-info check skipped"
-
-about:
-  summary: AdaptiveCpp SYCL compiler with NVIDIA CUDA support (generic JIT mode)
-  description: |
-    AdaptiveCpp is an independent open-source SYCL implementation targeting
-    CPUs and GPUs from all major vendors. This package provides NVIDIA GPU
-    support via the CUDA backend using generic compilation mode (JIT).
-
-    Packages:
-    - naga-adaptivecpp-toolkit-libs:  Runtime libraries only
-    - naga-adaptivecpp-toolkit-devel: Development files (headers, cmake)
-    - naga-adaptivecpp-toolkit:       Full compiler and tools
-
-    Key features:
-    - SYCL 2020 support
-    - NVIDIA CUDA backend (generic JIT compilation)
-    - OpenMP CPU backend
-    - Unified Shared Memory (USM)
-    - Single-source compiler (acpp)
-    - Fast compilation with runtime JIT to device code
-  license: BSD-2-Clause
-  license_file: LICENSE
-  homepage: https://github.com/AdaptiveCpp/AdaptiveCpp
-  repository: https://github.com/NAGAGroup/CodeAccelerate-SYCLBuildKit
-  documentation: https://github.com/AdaptiveCpp/AdaptiveCpp/wiki
-
-extra:
-  recipe-maintainers:
-    - jackm97
+          - acpp --version
+          - acpp-info --list-targets
+          - clang++ --version
