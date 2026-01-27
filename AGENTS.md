@@ -2,82 +2,111 @@
 
 ## Project Overview
 
-**CodeAccelerate-SYCLBuildKit** builds relocatable SYCL compiler toolchains based on Intel's LLVM/DPC++.
+**CodeAccelerate-SYCLBuildKit** is a conda packaging workspace that builds relocatable SYCL compiler toolchains for heterogeneous computing.
 
-- **Tech stack**: Intel LLVM/DPC++, oneAPI Math/DPL, pixi (conda), Nushell scripts
-- **Targets**: Linux x64, SYCL backends (CUDA, OpenCL, Native CPU)
-- **Build system**: CMake + Ninja, orchestrated via pixi tasks
+- **Tech stack**: AdaptiveCpp (SYCL compiler), oneAPI Math/DPL libraries, pixi-build (rattler-build backend)
+- **Platform**: Linux x64 only
+- **Output**: `.conda` packages (conda 2.0 format) uploaded to prefix.dev/code-accelerate
+- **Goal**: Platform-agnostic compute stack with JIT compilation (generic target, no platform-specific recompilation)
 
 ## Critical Notes for AI Agents
 
-1. **Always use pixi**: All commands require `pixi run` or `pixi shell` for correct environment
-2. **Incremental builds work**: CMake/Ninja handle incremental builds; full rebuilds rarely needed
-3. **Ccache enabled**: Automatic caching speeds up recompilation
-4. **Path validation**: Nushell scripts check paths rigorously; follow this pattern in new scripts
-5. **Error messages**: Always include recovery suggestions (e.g., "Run: pixi run configure")
-6. **Git submodule**: `packages/llvm/repo` is a submodule; don't modify `.git` directly
-7. **Test after changes**: Minimum `pixi run test --quick` after code modifications
-8. **Parallelism**: Builds use all cores by default; override with `BUILD_JOBS` if needed
+1. **PACKAGING FOCUS**: This is a packaging workspace. **DO NOT** modify source code in `repo/` or `llvm-project/` directories.
+2. **BUILD COMMANDS**: Use `pixi install` (triggers build) or `pixi build` (explicit). **DO NOT** use `pixi run build`.
+3. **TOOL USAGE**: Use `pixi` for lifecycle management. Only use `rattler-build` directly for debugging recipe tests.
+4. **MULTI-OUTPUT RECIPES**: Each package produces 3 outputs (libs, devel, meta-package) from a single build.
+5. **BUILD MARKER OPTIMIZATION**: Recipes use `.build_complete` to avoid rebuilding for each output.
+6. **RECIPE SYMLINKS**: onemath/onedpl use symlinked recipe dirs as workaround for pixi-build limitation.
+7. **GIT SUBMODULES**: onemath/repo and onedpl/repo are git submodules; adaptivecpp uses custom `.repos.toml`.
+8. **BUILD DEPENDENCY ORDER**: adaptivecpp MUST be built first (onemath/onedpl depend on it).
+9. **CCACHE ENABLED**: onemath uses ccache with 10GB cache for faster recompilation.
+10. **TEST SCOPE**: Recipe tests validate file existence and binary invocation only (no integration tests).
+11. **GENERIC TARGET**: `ACPP_TARGETS=generic` enables runtime JIT to device code (portable, no AOT compilation).
 
-## Quick Start Commands
+## Package Build Commands
+
+### Check Recipe Configuration
 
 ```bash
-pixi shell                    # Activate environment (required for all commands)
-pixi run submodule-init       # Initialize LLVM source (first time only)
-pixi run submodule-update     # Update to latest upstream (if needed)
-pixi run configure            # Configure CMake
-pixi run build                # Build LLVM/DPC++ (parallel, uses ccache)
-pixi run install              # Install to $INSTALL_PREFIX
-pixi run test                 # Full test suite
-pixi run test --quick         # Fast smoke tests only
-pixi run test --sycl-only     # Skip LLVM lit tests
-pixi run clean                # Remove build artifacts
+cd packages/adaptivecpp
+cat recipe/recipe.yaml              # Multi-output recipe definition
+cat recipe/variants.yaml            # Compiler/CUDA version constraints
 ```
 
-## Running Single Tests
+### Build Single Package
 
-**Manual SYCL test compilation** (recommended for debugging):
 ```bash
-pixi run install
-# Create test file in build/test/ or temp directory
-echo '#include <sycl/sycl.hpp>
-int main() { return 0; }' > build/test/my_test.cpp
-$INSTALL_PREFIX/bin/clang++ -fsycl build/test/my_test.cpp -o build/test/my_test
-./build/test/my_test
+cd packages/adaptivecpp
+pixi run repos-init                 # First time: initialize llvm-project + AdaptiveCpp repos
+pixi install                        # Trigger build via pixi-build backend
 ```
 
-**LLVM lit tests**:
+**Output**: `.conda` files in `output/` (e.g., `naga-adaptivecpp-toolkit-libs-2026.2.17-h9f6055b_0.conda`)
+
+### Build All Packages (Sequential)
+
 ```bash
-cd $LLVM_BUILD_DIR
-llvm-lit test/sycl/basic_tests/dimension.cpp  # Specific test
-ninja check-sycl                               # All SYCL tests
-ninja check-sycl-host                          # Host-only tests
+# 1. AdaptiveCpp (LLVM + SYCL compiler)
+cd packages/adaptivecpp && pixi run repos-init && pixi install
+
+# 2. onemath (SYCL math library, depends on adaptivecpp)
+cd ../onemath && pixi run -e init submodule-init && pixi run -e init setup && pixi install
+
+# 3. onedpl (SYCL parallel algorithms, depends on adaptivecpp)
+cd ../onedpl && pixi run -e init submodule-init && pixi install
 ```
+
+### Run Recipe Tests
+
+```bash
+cd packages/adaptivecpp
+# Tests run automatically after build; to re-run manually for debugging:
+pixi shell
+rattler-build test --recipe-dir recipe/
+exit
+```
+
+**Test scope**: File existence checks (`test -f $PREFIX/lib/libacpp_runtime.so`) and binary invocation (`acpp --version`)
 
 ## Code Style Guidelines
 
-### C/C++ (LLVM/SYCL Code)
+### Recipe Files (YAML)
 
-**Formatting**: LLVM style via `.clang-format`
-- 80-column limit, 2-space indentation
+- **Naming**: `kebab-case` for package names, task names
+- **Env vars**: `UPPER_SNAKE_CASE` (e.g., `BUILD_PREFIX`, `PREFIX`)
+- **Indentation**: 2 spaces
+- **Comments**: Use `#` for explanations of non-obvious configurations
+- **Jinja2**: Use `{{ compiler('cxx') }}` for compiler selection, `${{ version }}` for version interpolation
 
-**Naming** (enforced by `.clang-tidy`):
-- Classes/Enums/Unions: `CamelCase`
-- Functions: `camelBack` (e.g., `myFunction`)
-- Variables/Parameters/Members: `CamelCase`
-- Macros: `UPPER_SNAKE_CASE`
-
-**Quality Checks**:
-```bash
-clang-format -i modified_files.cpp              # Apply formatting
-clang-tidy path/to/file.cpp -- -I$LLVM_SOURCE_DIR/sycl/include  # Lint
+**Example**:
+```yaml
+outputs:
+  - package:
+      name: naga-adaptivecpp-toolkit-libs
+      version: ${{ version }}
+    requirements:
+      host:
+        - ${{ compiler('cxx') }}
+        - cmake >=3.18
 ```
 
-### Python
+### Build Scripts (Bash)
 
-- **Formatter**: Black with 88-character line limit
-- **Naming**: PEP 8 (snake_case for functions/variables)
-- **Apply**: `black --line-length 88 script.py`
+- **Shebang**: `#!/usr/bin/env bash`
+- **Error handling**: `set -euo pipefail` at top
+- **Naming**: `snake_case` for variables/functions
+- **Env vars**: `${BUILD_PREFIX}`, `${PREFIX}`, `${SRC_DIR}` (conda-build conventions)
+- **Path handling**: Always use absolute paths with `realpath` or `readlink -f`
+- **Verbose output**: Use `set -x` or echo key steps for debugging
+
+**Error handling pattern**:
+```bash
+if [[ ! -d "${LLVM_SOURCE}" ]]; then
+    echo "ERROR: llvm-project not found at ${LLVM_SOURCE}"
+    echo "Run: cd packages/adaptivecpp && pixi run repos-init"
+    exit 1
+fi
+```
 
 ### Nushell Scripts (`.nu` files)
 
@@ -88,79 +117,67 @@ clang-tidy path/to/file.cpp -- -I$LLVM_SOURCE_DIR/sycl/include  # Lint
 - **Strings**: Use interpolation `$"text ($variable)"`
 - **Env vars**: `$env.VAR_NAME`, with defaults: `$env.VAR? | default "value"`
 
-**Error handling pattern**:
-```nu
-if not ($source_dir | path exists) {
-    print $"Error: Source not found at ($source_dir)"
-    print "Run: pixi run submodule-init"
-    exit 1
-}
-```
+### Configuration Files (TOML)
 
-### Configuration Files (TOML/YAML)
-
-- **Task names**: `kebab-case` (e.g., `submodule-init`)
+- **Task names**: `kebab-case` (e.g., `repos-init`, `submodule-init`)
 - **Env vars**: `UPPER_SNAKE_CASE`
+- **Channels**: Ordered by priority (code-accelerate > pixi-build-backends > conda-forge)
+
+### Python (if used in build)
+
+- **Formatter**: Black with 88-character line limit
+- **Naming**: PEP 8 (snake_case for functions/variables, PascalCase for classes)
+- **Type hints**: Use for function signatures
+- **Imports**: Standard library, third-party, local (separated by blank lines)
 
 ## Project Structure
 
 ```
 CodeAccelerate-SYCLBuildKit/
-├── packages/llvm/repo/           # Intel LLVM/DPC++ submodule
-│   └── sycl/                     # SYCL runtime & tests
-│       ├── test/                 # LIT-based compilation tests
-│       └── test-e2e/             # End-to-end functional tests
-├── packages/onemath/repo/        # oneAPI Math (BLAS/LAPACK)
-├── scripts/llvm/*.nu             # Build orchestration (configure/build/install/test)
-├── build/llvm/                   # CMake build artifacts (gitignored)
-├── activation/*.sh               # Environment setup scripts
-├── toolchains/linux.cmake        # Cross-compilation toolchain
-└── pixi.toml                     # Main configuration
+├── packages/
+│   ├── adaptivecpp/
+│   │   ├── pixi.toml                    # Package config (channels, dependencies, tasks)
+│   │   ├── .repos.toml                  # Repository definitions (llvm-project, AdaptiveCpp)
+│   │   ├── recipe/
+│   │   │   ├── recipe.yaml              # Multi-output recipe (libs, devel, toolkit)
+│   │   │   ├── variants.yaml            # Compiler/CUDA constraints
+│   │   │   └── scripts/
+│   │   │       ├── build.sh             # Build orchestration
+│   │   │       ├── activate.sh          # Conda activation script
+│   │   │       └── deactivate.sh        # Conda deactivation script
+│   │   ├── llvm-project/                # LLVM source (cloned by repos-init)
+│   │   ├── build/                       # CMake build artifacts
+│   │   └── output/                      # Built .conda packages
+│   ├── onemath/
+│   │   ├── pixi.toml
+│   │   ├── recipe/                      # Shared recipe
+│   │   ├── libs/, devel/, onemath/      # Symlink dirs (→ ../recipe)
+│   │   └── repo/                        # Git submodule (uxlfoundation/oneMath)
+│   └── onedpl/
+│       ├── pixi.toml
+│       ├── recipe/
+│       └── repo/                        # Git submodule (uxlfoundation/oneDPL)
+├── docs/                                # Project documentation
+└── README.md
 ```
 
-## Key Environment Variables
+## Key Build Environment Variables
 
-| Variable            | Default                          | Purpose                      |
-|---------------------|----------------------------------|------------------------------|
-| `INSTALL_PREFIX`    | `$HOME/.local/naga-sycl-toolkit` | Installation directory       |
-| `LLVM_SOURCE_DIR`   | `$PROJECT_ROOT/packages/llvm/repo` | LLVM source location       |
-| `LLVM_BUILD_DIR`    | `$PROJECT_ROOT/build/llvm`       | CMake build directory        |
-| `LLVM_TARGETS`      | `X86;NVPTX;SPIRV`                | LLVM target architectures    |
-| `SYCL_BACKENDS`     | `opencl;cuda;native_cpu`         | SYCL runtime backends        |
-| `BUILD_JOBS`        | (auto-detected via `nproc`)      | Parallel build jobs          |
-
-**Override in shell**: `export BUILD_JOBS=16 && pixi run build`
-
-## Common Workflows
-
-**Incremental development**:
-```bash
-# Edit code in packages/llvm/repo/sycl/...
-pixi run build                    # Incremental rebuild
-pixi run install                  # Update installation
-pixi run test --quick             # Fast verification
-```
-
-**Debugging test failure**:
-```bash
-pixi run install
-$INSTALL_PREFIX/bin/clang++ -fsycl -g failing_test.cpp -o test_debug
-./test_debug                      # Run with debugger
-```
-
-## oneAPI Math Workflow
-
-Requires DPC++ built first (note: `-e` flag is crucial):
-```bash
-pixi run -e onemath submodule-init
-pixi run -e onemath configure     # Uses installed DPC++
-pixi run -e onemath build
-pixi run -e onemath install
-```
+| Variable           | Set By          | Purpose                                  |
+|--------------------|-----------------|------------------------------------------|
+| `BUILD_PREFIX`     | rattler-build   | Build-time dependencies location         |
+| `PREFIX`           | rattler-build   | Installation prefix for current output   |
+| `SRC_DIR`          | rattler-build   | Source directory (dummy, not used)       |
+| `RECIPE_DIR`       | rattler-build   | Recipe directory path                    |
+| `CPU_COUNT`        | rattler-build   | Number of CPUs for parallel builds       |
+| `ACPP_TARGETS`     | Build scripts   | AdaptiveCpp compilation targets (generic)|
 
 ## Getting Help
 
 - **Project README**: `/home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/README.md`
-- **LLVM upstream**: https://github.com/intel/llvm/tree/sycl
+- **Integration docs**: `ADAPTIVECPP_INTEGRATION.md` (implementation details)
+- **Migration plan**: `docs/adaptivecpp-migration-plan.md` (design decisions)
+- **Pixi docs**: https://pixi.sh/latest/advanced/pixi_build/
+- **Rattler-build docs**: https://prefix-dev.github.io/rattler-build/
+- **AdaptiveCpp upstream**: https://github.com/AdaptiveCpp/AdaptiveCpp
 - **SYCL spec**: https://registry.khronos.org/SYCL/
-- **Pixi docs**: https://pixi.sh/
