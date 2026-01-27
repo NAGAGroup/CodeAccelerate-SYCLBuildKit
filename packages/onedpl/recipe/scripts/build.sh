@@ -56,8 +56,8 @@ echo ">>> Build directory: ${BUILD_DIR}"
 # AdaptiveCpp SYCL headers configuration
 # =============================================================================
 # Add AdaptiveCpp include path to compiler flags to ensure sycl/sycl.hpp is found
-export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/AdaptiveCpp"
-export CFLAGS="${CFLAGS:-} -I${PREFIX}/include/AdaptiveCpp"
+# export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/AdaptiveCpp"
+# export CFLAGS="${CFLAGS:-} -I${PREFIX}/include/AdaptiveCpp"
 
 echo ">>> AdaptiveCpp include path added to compiler flags"
 echo "    CXXFLAGS: ${CXXFLAGS}"
@@ -69,17 +69,17 @@ echo "=============================================="
 # =============================================================================
 # Use system C/C++ compilers provided by rattler-build (${CC} and ${CXX})
 # AdaptiveCpp headers will be found via CXXFLAGS set above
-SYCL_CXX="${CXX}"
+# SYCL_CXX="${CXX}"
 
-if [[ -z "${SYCL_CXX}" ]]; then
-    echo "ERROR: CXX compiler not set by build environment"
-    echo "This should be provided by rattler-build"
-    exit 1
-fi
-
-echo ">>> Using compiler: ${SYCL_CXX}"
-"${SYCL_CXX}" --version
-echo "=============================================="
+# if [[ -z "${SYCL_CXX}" ]]; then
+#     echo "ERROR: CXX compiler not set by build environment"
+#     echo "This should be provided by rattler-build"
+#     exit 1
+# fi
+#
+# echo ">>> Using compiler: ${SYCL_CXX}"
+# "${SYCL_CXX}" --version
+# echo "=============================================="
 
 # =============================================================================
 # Configure oneDPL with CMake
@@ -87,6 +87,8 @@ echo "=============================================="
 echo ">>> Configuring oneDPL..."
 
 mkdir -p "${BUILD_DIR}"
+
+export CXX="${BUILD_PREFIX}/bin/acpp"
 
 cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \

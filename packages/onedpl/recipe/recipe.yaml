@@ -15,7 +15,7 @@ schema_version: 1
 
 context:
   name: naga-onedpl
-  version: "2026.1.1"
+  version: "2026.2.16"
 
 recipe:
   name: ${{ name }}
@@ -41,9 +41,7 @@ outputs:
       build:
         - cmake >=3.20
         - ninja
-      host:
-        # SYCL compiler (for CMake SYCL detection)
-        - naga-adaptivecpp-toolkit >=2026.1.1,<2026.2
+        - naga-adaptivecpp-toolkit >=2026.2.16,<2027
         - tbb-devel
       run:
         # Users need SYCL compiler to use oneDPL with SYCL backend

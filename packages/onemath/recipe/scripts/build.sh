@@ -107,18 +107,14 @@ echo "=============================================="
 # =============================================================================
 # CUDA configuration
 # =============================================================================
-CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
-if [[ ! -d "${CUDA_ROOT}" ]]; then
-    CUDA_ROOT="${PREFIX}"
-fi
-
+CUDA_ROOT="${BUILD_PREFIX}/targets/x86_64-linux"
 echo ">>> CUDA root: ${CUDA_ROOT}"
 
 # =============================================================================
 # AdaptiveCpp SYCL headers configuration
 # =============================================================================
 # Add AdaptiveCpp include path to compiler flags to ensure CL/sycl.hpp is found
-export CXXFLAGS="${CXXFLAGS} --acpp-targets=generic"
+# export CXXFLAGS="${CXXFLAGS} --acpp-targets=generic"
 # export CFLAGS="${CFLAGS}"
 
 echo ">>> AdaptiveCpp include path added to compiler flags"
@@ -141,7 +137,7 @@ if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
     # Clean any stale CMake state that might interfere
     rm -f "${BUILD_DIR}/CMakeCache.txt" 2>/dev/null || true
 
-    export CXX="${PREFIX}/bin/acpp"
+    export CXX="${BUILD_PREFIX}/bin/acpp"
     
     cmake -S "${REPO_DIR}" -B "${BUILD_DIR}" -G Ninja \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
@@ -160,7 +156,9 @@ if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
         -DCUDAToolkit_ROOT="${CUDA_ROOT}" \
         -DBUILD_FUNCTIONAL_TESTS=OFF \
         -DBUILD_EXAMPLES=OFF \
-        -DBUILD_DOC=OFF
+        -DBUILD_DOC=OFF \
+        -DCMAKE_SYSROOT="${CONDA_BUILD_SYSROOT}" \
+        $CMAKE_ARGS
 else
     echo ">>> Skipping configure (using existing build.ninja)"
 fi
