@@ -1,0 +1,12 @@
+# Repository definitions for AdaptiveCPP package
+# Used by init-repos.nu script to clone/verify git repositories
+
+[repos.llvm-project]
+url = "https://github.com/llvm/llvm-project.git"
+branch = "main"
+path = "llvm-project"
+
+[repos.adaptivecpp]
+url = "https://github.com/AdaptiveCpp/AdaptiveCpp.git"
+branch = "develop"
+path = "llvm-project/AdaptiveCpp"
