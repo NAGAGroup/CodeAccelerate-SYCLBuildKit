@@ -1,9 +1,0 @@
-# naga-sycl-toolkit-libs package
-# This is a sub-package that only defines [package], not [workspace]
-
-[package]
-name = "naga-sycl-toolkit-libs"
-version = "2025.12.1"
-
-[package.build]
-backend = { name = "pixi-build-rattler-build", version = "*" }
