@@ -46,10 +46,5 @@ libc = "2.34"
 # naga-adaptivecpp-toolkit = { path = "." }
 sysroot_linux-64 = ">=2.34"
 
-[dependencies]
-naga-adaptivecpp-toolkit-libs = { url = "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/adaptivecpp/naga-adaptivecpp-toolkit-libs-2026.2.17-h9f6055b_0.conda" }
-naga-adaptivecpp-toolkit = { url = "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/adaptivecpp/naga-adaptivecpp-toolkit-2026.2.17-h9f6055b_0.conda" }
-naga-adaptivecpp-toolkit-devel = { url = "file:///home/jack/sycl-build-project/CodeAccelerate-SYCLBuildKit/packages/adaptivecpp/naga-adaptivecpp-toolkit-devel-2026.2.17-h9f6055b_0.conda" }
-
 [tasks]
 repos-init = { cmd = "nu scripts/init-repos.nu", description = "Initialize git repositories from .repos.toml" }
