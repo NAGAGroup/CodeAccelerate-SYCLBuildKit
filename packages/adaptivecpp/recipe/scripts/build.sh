@@ -114,6 +114,9 @@ if [ ! -f "$BUILD_DIR/build.ninja" ]; then
 fi
 
 # Build
+# Prepend the in-tree LLVM build dir so ExternalProject nested cmake invocations
+# (e.g. LLVMSpirvTranslator) can find LLVMConfig.cmake via CMAKE_PREFIX_PATH env var
+export CMAKE_PREFIX_PATH="$BUILD_DIR${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 cmake --build "$BUILD_DIR" -j "${CPU_COUNT:-4}"
 
 # ============================================================================
