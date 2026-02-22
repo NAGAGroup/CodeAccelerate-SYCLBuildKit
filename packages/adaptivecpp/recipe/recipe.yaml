@@ -56,6 +56,9 @@ outputs:
         - libzlib
         - libxml2
         - libedit
+      run_constraints:
+        - cuda >=12,<13
+        - __cuda >=12
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
 
@@ -101,6 +104,9 @@ outputs:
         - libzlib
         - libxml2
         - libedit
+      run_constraints:
+        - cuda >=12,<13
+        - __cuda >=12
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
 
@@ -141,6 +147,9 @@ outputs:
         - libzlib
         - libxml2
         - libedit
+      run_constraints:
+        - cuda >=12,<13
+        - __cuda >=12
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
 
