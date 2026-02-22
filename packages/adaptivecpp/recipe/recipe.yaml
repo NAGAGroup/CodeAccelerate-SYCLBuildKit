@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: naga-adaptivecpp-toolkit
-  version: "24.10.0"
+  version: "25.10.0"
 
 recipe:
   name: ${{ name }}
@@ -33,7 +33,7 @@ outputs:
       files:
         - lib/**/*.so*
         - etc/AdaptiveCpp/*
-        - lib/hipSYCL/ext/bitcode/ptx/libdevice.10.bc
+        - lib/hipSYCL/*
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -45,13 +45,16 @@ outputs:
         - python >=3.10
         - git
         - ccache
-        - lld >=18
+      host:
+        - zlib
+        - libxml2-devel
+        - libedit
         - boost-cpp >=1.84
-        - llvmdev >=18,<19
       run:
         - ${{ stdlib('c') }}
         - libstdcxx ${{ cxx_compiler_version }}
-        - boost-cpp >=1.84
+        - libzlib
+        - libxml2
         - libedit
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
@@ -71,6 +74,7 @@ outputs:
       files:
         - lib/**/*.so*
         - etc/AdaptiveCpp/*
+        - lib/hipSYCL/*
         - lib/cmake/*
         - include/*
 
@@ -85,15 +89,18 @@ outputs:
         - python >=3.10
         - git
         - ccache
-        - lld >=18
+      host:
+        - zlib
+        - libxml2-devel
+        - libedit
         - boost-cpp >=1.84
-        - llvmdev >=18,<19
       run:
         - ${{ stdlib('c') }}
         - libstdcxx ${{ cxx_compiler_version }}
-        - boost-cpp >=1.84
-        - libedit
         - libstdcxx-devel_linux-64 ${{ cxx_compiler_version }}
+        - libzlib
+        - libxml2
+        - libedit
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
 
@@ -120,17 +127,20 @@ outputs:
         - python >=3.10
         - git
         - ccache
-        - lld >=18
+      host:
+        - zlib
+        - libxml2-devel
+        - libedit
         - boost-cpp >=1.84
-        - llvmdev >=18,<19
       run:
         - ${{ stdlib('c') }}
         - libstdcxx ${{ cxx_compiler_version }}
-        - boost-cpp >=1.84
-        - libedit
         - python >=3.10
         - gcc ${{ c_compiler_version }}
         - gxx ${{ cxx_compiler_version }}
+        - libzlib
+        - libxml2
+        - libedit
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
 

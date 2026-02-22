@@ -106,7 +106,6 @@ if [ ! -f "$BUILD_DIR/build.ninja" ]; then
         -DACPP_TARGETS=generic \
         -DWITH_CUDA_BACKEND=ON \
         -DACPP_COMPILER_FEATURE_PROFILE=full \
-        -DhipSYCL_VERSION="24.10.0" \
         $CMAKE_ARGS
         # -DCMAKE_C_COMPILER_TARGET="${HOST_TRIPLE}" \
         # -DCMAKE_CXX_COMPILER_TARGET="${HOST_TRIPLE}" \
