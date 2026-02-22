@@ -47,7 +47,7 @@ outputs:
         - lib/*.so*
     requirements:
       build:
-        - naga-adaptivecpp-toolkit >=24.10.0,<25
+        - naga-adaptivecpp-toolkit >=25.10.0,<26
         - ${{ stdlib('c') }}
         - cmake >=3.24
         - ninja >=1.12
@@ -84,7 +84,7 @@ outputs:
         - lib/pkgconfig/**
     requirements:
       build:
-        - naga-adaptivecpp-toolkit >=24.10.0,<25
+        - naga-adaptivecpp-toolkit >=25.10.0,<26
         - ${{ stdlib('c') }}
         - cmake >=3.24
         - ninja >=1.12
@@ -114,7 +114,7 @@ outputs:
       files: []
     requirements:
       build:
-        - naga-adaptivecpp-toolkit >=24.10.0,<25
+        - naga-adaptivecpp-toolkit >=25.10.0,<26
         - ${{ stdlib('c') }}
         - cmake >=3.24
         - ninja >=1.12
@@ -124,7 +124,7 @@ outputs:
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - naga-adaptivecpp-toolkit >=24.10.0,<25
+        - naga-adaptivecpp-toolkit >=25.10.0,<26
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:
