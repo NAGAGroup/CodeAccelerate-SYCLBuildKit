@@ -49,13 +49,15 @@ outputs:
       build:
         - naga-adaptivecpp-toolkit >=25.10.0,<26
         - ${{ stdlib('c') }}
-        - cmake >=3.24
+        - cmake >=3.24,<3.25
         - ninja >=1.12
         - ccache
         - pkg-config
         - git
-        - cuda-version >=12.6,<13
-        - cuda-toolkit
+        - cuda
+      host:
+        - naga-adaptivecpp-toolkit-devel >=25.10.0,<26
+        - cuda
       run:
         - ${{ stdlib('c') }}
         - cuda-cudart
@@ -86,13 +88,15 @@ outputs:
       build:
         - naga-adaptivecpp-toolkit >=25.10.0,<26
         - ${{ stdlib('c') }}
-        - cmake >=3.24
+        - cmake >=3.24,<3.25
         - ninja >=1.12
         - ccache
         - pkg-config
         - git
-        - cuda-version >=12.6,<13
-        - cuda-toolkit
+        - cuda
+      host:
+        - naga-adaptivecpp-toolkit-devel >=25.10.0,<26
+        - cuda
       run:
         - ${{ stdlib('c') }}
         - cuda-cudart
@@ -116,15 +120,18 @@ outputs:
       build:
         - naga-adaptivecpp-toolkit >=25.10.0,<26
         - ${{ stdlib('c') }}
-        - cmake >=3.24
+        - cmake >=3.24,<3.25
         - ninja >=1.12
         - ccache
         - pkg-config
         - git
-        - cuda-version >=12.6,<13
-        - cuda-toolkit
+        - cuda
+      host:
+        - naga-adaptivecpp-toolkit-devel >=25.10.0,<26
+        - cuda
       run:
-        - naga-adaptivecpp-toolkit >=25.10.0,<26
+        - ${{ stdlib('c') }}
+        - cuda-cudart
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:
