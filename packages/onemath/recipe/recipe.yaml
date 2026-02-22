@@ -78,6 +78,8 @@ outputs:
     build:
       script: scripts/build.sh
       files:
+        # Runtime shared libraries (included here for self-contained output)
+        - lib/*.so*
         # All headers
         - include/**
         # CMake modules
@@ -98,8 +100,12 @@ outputs:
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - ${{ name }}-libs ==${{ version }}
+        - ${{ stdlib('c') }}
+        - naga-adaptivecpp-toolkit-libs >=2026.2.16,<2027
+        - cuda-cudart
         - naga-adaptivecpp-toolkit-devel >=2026.2.16,<2027
+      run_exports:
+        - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
     tests:
       - script:
           - test -d $PREFIX/include/oneapi/math || test -d $PREFIX/include/oneapi/mkl
@@ -128,8 +134,6 @@ outputs:
         - cuda-version >=12.6,<13
         - cuda-toolkit
       run:
-        - ${{ name }}-libs ==${{ version }}
-        - ${{ name }}-devel ==${{ version }}
         - naga-adaptivecpp-toolkit >=2026.2.16,<2027
       run_exports:
         - ${{ pin_subpackage(name ~ '-libs', upper_bound='x.x') }}
@@ -142,19 +146,18 @@ about:
   description: |
     oneMath (formerly oneMKL Interfaces) provides a unified SYCL interface
     to vendor-optimized math libraries. This package builds with NVIDIA CUDA
-    backends:
+    backends using AdaptiveCpp as the SYCL implementation.
 
     Packages:
     - naga-onemath-libs: Runtime libraries only
     - naga-onemath-devel: Development files (headers, cmake)
     - naga-onemath: Full package (meta-package)
 
-    Supported domains:
+    Supported domains (AdaptiveCpp backend):
     - BLAS (cuBLAS backend)
-    - LAPACK (cuSOLVER backend)
-    - RNG (cuRAND backend)
-    - DFT/FFT (cuFFT backend)
-    - Sparse BLAS (cuSPARSE backend)
+
+    Note: LAPACK, RNG, DFT/FFT, and Sparse BLAS are not supported with
+    AdaptiveCpp. Those domains require the Intel DPC++ compiler.
 
     Usage:
       #include <oneapi/math.hpp>

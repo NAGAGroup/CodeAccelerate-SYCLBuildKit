@@ -13,37 +13,7 @@ if [ -n "${CONDA_BACKUP_CXX:-}" ]; then
     export CXX="$CONDA_BACKUP_CXX"
     unset CONDA_BACKUP_CXX
 else
-    unset CXX
-fi
-
-# Restore build flags
-if [ -n "${CONDA_BACKUP_CFLAGS:-}" ]; then
-    export CFLAGS="$CONDA_BACKUP_CFLAGS"
-    unset CONDA_BACKUP_CFLAGS
-else
-    unset CFLAGS
-fi
-
-if [ -n "${CONDA_BACKUP_CXXFLAGS:-}" ]; then
-    export CXXFLAGS="$CONDA_BACKUP_CXXFLAGS"
-    unset CONDA_BACKUP_CXXFLAGS
-else
-    unset CXXFLAGS
-fi
-
-if [ -n "${CONDA_BACKUP_LDFLAGS:-}" ]; then
-    export LDFLAGS="$CONDA_BACKUP_LDFLAGS"
-    unset CONDA_BACKUP_LDFLAGS
-else
-    unset LDFLAGS
-fi
-
-# Restore CMake args
-if [ -n "${CONDA_BACKUP_CMAKE_ARGS:-}" ]; then
-    export CMAKE_ARGS="$CONDA_BACKUP_CMAKE_ARGS"
-    unset CONDA_BACKUP_CMAKE_ARGS
-else
-    unset CMAKE_ARGS
+unset CXX
 fi
 
 # Restore host/build
@@ -76,3 +46,18 @@ unset ACPP_TARGETS
 unset ACPP_BACKENDS
 unset CONDA_TOOLCHAIN_HOST
 unset CONDA_TOOLCHAIN_BUILD
+
+# Unset AdaptiveCPP path variables (set by activate.sh but previously missing from deactivate)
+unset ACPP_PATH
+unset ACPP_LIB_PATH
+unset ACPP_CUDA_LIB_PATH
+unset ACPP_CUDA_PATH
+unset ACPP_CLANG
+
+# Clean up symlinks created by activate.sh
+rm -f "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-clang++"
+rm -f "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-clang"
+
+# Clean up .cfg response files written by activate.sh
+rm -f "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-clang++.cfg"
+rm -f "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-clang.cfg"

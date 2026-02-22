@@ -3,10 +3,10 @@
 
 [repos.llvm-project]
 url = "https://github.com/llvm/llvm-project.git"
-branch = "main"
+tag = "llvmorg-18.1.8"
 path = "llvm-project"
 
 [repos.adaptivecpp]
 url = "https://github.com/AdaptiveCpp/AdaptiveCpp.git"
-branch = "develop"
+tag = "v24.10.0"
 path = "llvm-project/AdaptiveCpp"

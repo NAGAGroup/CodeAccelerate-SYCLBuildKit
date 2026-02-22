@@ -49,26 +49,7 @@ export ACPP_CXX="${CXX}"
 export ACPP_TARGETS="${ACPP_TARGETS:-generic}"
 export ACPP_BACKENDS="${ACPP_BACKENDS:-auto}"  # Auto-detect at runtime
 
-# =============================================================================
-# Build flags (conda-forge pattern)
-# =============================================================================
-_ACPP_CFLAGS="-isystem ${_ACPP_PREFIX}/include"
-_ACPP_CXXFLAGS="-isystem ${_ACPP_PREFIX}/include/sycl -isystem ${_ACPP_PREFIX}/include"
-_ACPP_LDFLAGS="-Wl,-rpath,${_ACPP_PREFIX}/lib -L${_ACPP_PREFIX}/lib"
 
-if [ -n "${CFLAGS+x}" ]; then
-    export CONDA_BACKUP_CFLAGS="${CFLAGS}"
-fi
-if [ -n "${CXXFLAGS+x}" ]; then
-    export CONDA_BACKUP_CXXFLAGS="${CXXFLAGS}"
-fi
-if [ -n "${LDFLAGS+x}" ]; then
-    export CONDA_BACKUP_LDFLAGS="${LDFLAGS}"
-fi
-
-export CFLAGS="${_ACPP_CFLAGS}"
-export CXXFLAGS="${_ACPP_CXXFLAGS}"
-export LDFLAGS="${_ACPP_LDFLAGS}"
 
 # # =============================================================================
 # # CMake configuration
@@ -142,7 +123,4 @@ fi
 # =============================================================================
 unset _ACPP_PREFIX
 unset _ACPP_CHOST
-unset _ACPP_CFLAGS
-unset _ACPP_CXXFLAGS
-unset _ACPP_LDFLAGS
 unset _CMAKE_ARGS

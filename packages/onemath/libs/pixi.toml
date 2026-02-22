@@ -3,7 +3,7 @@
 
 [package]
 name = "naga-onemath-libs"
-version = "2025.12.1"
+version = "2026.2.16"
 
 [package.build]
 backend = { name = "pixi-build-rattler-build", version = "*" }

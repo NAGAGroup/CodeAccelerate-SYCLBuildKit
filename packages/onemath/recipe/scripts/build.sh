@@ -111,15 +111,10 @@ CUDA_ROOT="${BUILD_PREFIX}/targets/x86_64-linux"
 echo ">>> CUDA root: ${CUDA_ROOT}"
 
 # =============================================================================
-# AdaptiveCpp SYCL headers configuration
+# AdaptiveCpp SYCL target configuration
 # =============================================================================
-# Add AdaptiveCpp include path to compiler flags to ensure CL/sycl.hpp is found
-# export CXXFLAGS="${CXXFLAGS} --acpp-targets=generic"
-# export CFLAGS="${CFLAGS}"
-
-echo ">>> AdaptiveCpp include path added to compiler flags"
-echo "    CXXFLAGS: ${CXXFLAGS}"
-echo "    CFLAGS:   ${CFLAGS}"
+# ACPP_TARGETS is passed directly to CMake via -DACPP_TARGETS=generic below.
+# The --acpp-targets flag in CXXFLAGS is not needed when using CMake.
 
 # =============================================================================
 # Configure oneMath with CMake
@@ -147,12 +142,12 @@ if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
         -DCMAKE_C_FLAGS="${CFLAGS}" \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DONEMATH_SYCL_IMPLEMENTATION=adaptivecpp \
+        -DONEMATH_SYCL_IMPLEMENTATION=hipsycl \
         -DACPP_TARGETS=generic \
         -DTARGET_DOMAINS="blas" \
         -DENABLE_MKLCPU_BACKEND=OFF \
         -DENABLE_MKLGPU_BACKEND=OFF \
-        -DENABLE_GENERIC_BLAS_BACKEND=True \
+        -DENABLE_CUBLAS_BACKEND=ON \
         -DCUDAToolkit_ROOT="${CUDA_ROOT}" \
         -DBUILD_FUNCTIONAL_TESTS=OFF \
         -DBUILD_EXAMPLES=OFF \
