@@ -56,6 +56,7 @@ outputs:
         - libzlib
         - libxml2
         - libedit
+        - openmp
       run_constraints:
         - cuda >=12,<13
         - __cuda >=12
@@ -104,6 +105,7 @@ outputs:
         - libzlib
         - libxml2
         - libedit
+        - openmp
       run_constraints:
         - cuda >=12,<13
         - __cuda >=12
@@ -147,6 +149,7 @@ outputs:
         - libzlib
         - libxml2
         - libedit
+        - openmp
       run_constraints:
         - cuda >=12,<13
         - __cuda >=12
