@@ -56,5 +56,3 @@ sysroot_linux-64 = ">=2.34"
 
 [tasks]
 repos-init = { cmd = "nu scripts/init-repos.nu", description = "Clone oneMath repository from .repos.toml" }
-setup = { cmd = "ln -sfn ../recipe libs/recipe && ln -sfn ../recipe devel/recipe && ln -sfn ../recipe onemath/recipe && echo Recipe symlinks created successfully", description = "Create recipe symlinks for multi-output build" }
-

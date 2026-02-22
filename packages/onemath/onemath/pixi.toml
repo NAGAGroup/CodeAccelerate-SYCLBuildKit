@@ -1,9 +1,0 @@
-# naga-onemath package (full package)
-# This is a sub-package that only defines [package], not [workspace]
-
-[package]
-name = "naga-onemath"
-version = "0.9.0"
-
-[package.build]
-backend = { name = "pixi-build-rattler-build", version = "*" }
