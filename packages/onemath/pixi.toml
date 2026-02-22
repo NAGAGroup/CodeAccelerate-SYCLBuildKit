@@ -6,10 +6,10 @@
 # ============================================================================
 #
 # First time setup (creates recipe symlinks):
-#   pixi run -e init setup
+#   pixi run repos-init
 #
-# Initialize submodule:
-#   pixi run -e init submodule-init
+# Setup recipe symlinks:
+#   pixi run setup
 #
 # Build and install:
 #   pixi install
@@ -31,12 +31,9 @@
 
 [workspace]
 channels = [
-  # Local channel with pre-built packages
-  "https://prefix.dev/code-accelerate",
-  # Pixi build backends
   "https://prefix.dev/pixi-build-backends",
-  # Main conda-forge channel
   "conda-forge",
+  "https://prefix.dev/code-accelerate",
 ]
 platforms = ["linux-64"]
 preview = ["pixi-build"]
@@ -44,37 +41,20 @@ preview = ["pixi-build"]
 [package.build]
 backend = { name = "pixi-build-rattler-build", version = "*", channels = [
   "https://prefix.dev/code-accelerate",
+  "https://prefix.dev/pixi-build-backends",
   "https://prefix.dev/conda-forge",
 ] }
+
+[package.build.config]
+experimental = false
 
 [system-requirements]
 libc = "2.34"
 
-# Install the full naga-onemath package (which depends on devel -> libs)
 [target.linux-64.dependencies]
-naga-adaptivecpp-toolkit = ">=2026.2.14,<2027"
+sysroot_linux-64 = ">=2.34"
 
-# ============================================================================
-# Init environment (no default feature - doesn't trigger package builds)
-# ============================================================================
-# This environment is used to set up recipe symlinks before the first build.
-# The symlinks are a workaround until pixi-build-rattler-build supports
-# custom recipe paths. See: https://github.com/prefix-dev/pixi-build-backends/issues/471
+[tasks]
+repos-init = { cmd = "nu scripts/init-repos.nu", description = "Clone oneMath repository from .repos.toml" }
+setup = { cmd = "ln -sfn ../recipe libs/recipe && ln -sfn ../recipe devel/recipe && ln -sfn ../recipe onemath/recipe && echo Recipe symlinks created successfully", description = "Create recipe symlinks for multi-output build" }
 
-[feature.init]
-platforms = ["linux-64"]
-
-[feature.init.tasks]
-setup = """
-ln -sfn ../recipe libs/recipe && \
-ln -sfn ../recipe devel/recipe && \
-ln -sfn ../recipe onemath/recipe && \
-echo "Recipe symlinks created successfully"
-"""
-
-submodule-init = """
-cd ../.. && git submodule update --init packages/onemath/repo
-"""
-
-[environments]
-init = { features = ["init"], no-default-feature = true }

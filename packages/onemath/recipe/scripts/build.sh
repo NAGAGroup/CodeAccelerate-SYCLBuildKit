@@ -149,6 +149,7 @@ if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
         -DENABLE_MKLGPU_BACKEND=OFF \
         -DENABLE_CUBLAS_BACKEND=ON \
         -DCUDAToolkit_ROOT="${CUDA_ROOT}" \
+        -DAdaptiveCpp_DIR="${BUILD_PREFIX}/lib/cmake/AdaptiveCpp" \
         -DBUILD_FUNCTIONAL_TESTS=OFF \
         -DBUILD_EXAMPLES=OFF \
         -DBUILD_DOC=OFF \
