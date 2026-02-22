@@ -26,13 +26,14 @@ def main [] {
     for repo in ($config.repos | transpose name details) {
         let repo_name = $repo.name
         let repo_url = $repo.details.url
-        let repo_branch = $repo.details.branch
+        let repo_ref = if ($repo.details | get -i tag) != null { $repo.details.tag } else { $repo.details.branch }
+        let repo_ref_type = if ($repo.details | get -i tag) != null { "Tag" } else { "Branch" }
         let repo_path = ($package_dir | path join $repo.details.path)
         
         print ""
         print $"[($repo_name)]"
         print $"  URL: ($repo_url)"
-        print $"  Branch: ($repo_branch)"
+        print $"  ($repo_ref_type): ($repo_ref)"
         print $"  Path: ($repo_path)"
         
         # Check if repository directory exists
@@ -63,7 +64,7 @@ def main [] {
         } else {
             # Clone repository (shallow)
             print "  Status: Cloning (shallow)..."
-            git clone --depth 1 --branch $repo_branch $repo_url $repo_path
+            git clone --depth 1 --branch $repo_ref $repo_url $repo_path
             
             if $env.LAST_EXIT_CODE != 0 {
                 print $"Error: Failed to clone ($repo_name)"
