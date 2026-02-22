@@ -33,6 +33,7 @@ outputs:
       files:
         - lib/**/*.so*
         - etc/AdaptiveCpp/*
+        - lib/hipSYCL/ext/bitcode/ptx/libdevice.10.bc
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -58,6 +59,7 @@ outputs:
     tests:
       - script:
           - test -f $PREFIX/lib/libacpp_runtime.so
+          - test -f $PREFIX/lib/hipSYCL/ext/bitcode/ptx/libdevice.10.bc
 
   # Output 2: Development headers
   - package:
@@ -137,3 +139,4 @@ outputs:
           - acpp --version
           - acpp-info --list-targets
           - clang++ --version
+          - test -f $PREFIX/lib/hipSYCL/ext/bitcode/ptx/libdevice.10.bc

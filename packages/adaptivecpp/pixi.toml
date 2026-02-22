@@ -43,7 +43,6 @@ experimental = false
 libc = "2.34"
 
 [target.linux-64.dependencies]
-# naga-adaptivecpp-toolkit = { path = "." }
 sysroot_linux-64 = ">=2.34"
 
 [tasks]

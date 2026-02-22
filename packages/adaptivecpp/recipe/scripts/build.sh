@@ -41,6 +41,24 @@ if [ -f "$BUILD_MARKER" ]; then
     
     chmod +x "$PREFIX/etc/conda/activate.d/~~activate-acpp.sh"
     chmod +x "$PREFIX/etc/conda/deactivate.d/~~deactivate-acpp.sh"
+    
+    # Ship libdevice.10.bc inside the package at the AdaptiveCpp "redist" bitcode path.
+    # This populates the primary lookup in LLVMToPtx.cpp::getDeviceLibPath(), which checks
+    # $INSTALL_DIR/lib/hipSYCL/ext/bitcode/ptx/libdevice.10.bc via the runtime-relocatable
+    # dladdr mechanism before falling back to the hardcoded ACPP_CUDA_DEVICE_LIBS_PATH macro.
+    CUDA_LIBDEVICE_SRC="${BUILD_PREFIX}/targets/x86_64-linux/nvvm/libdevice/libdevice.10.bc"
+    if [[ ! -f "${CUDA_LIBDEVICE_SRC}" ]]; then
+        # Fallback: search standard CUDA paths within BUILD_PREFIX
+        CUDA_LIBDEVICE_SRC="$(find "${BUILD_PREFIX}" -name "libdevice.10.bc" 2>/dev/null | head -1)"
+    fi
+    if [[ -z "${CUDA_LIBDEVICE_SRC}" ]] || [[ ! -f "${CUDA_LIBDEVICE_SRC}" ]]; then
+        echo "ERROR: Could not locate libdevice.10.bc in BUILD_PREFIX=${BUILD_PREFIX}"
+        exit 1
+    fi
+    ACPP_PTX_BITCODE_DIR="${PREFIX}/lib/hipSYCL/ext/bitcode/ptx"
+    mkdir -p "${ACPP_PTX_BITCODE_DIR}"
+    cp "${CUDA_LIBDEVICE_SRC}" "${ACPP_PTX_BITCODE_DIR}/libdevice.10.bc"
+    echo "Installed libdevice.10.bc -> ${ACPP_PTX_BITCODE_DIR}/libdevice.10.bc"
     exit 0
 fi
 
@@ -88,6 +106,7 @@ if [ ! -f "$BUILD_DIR/build.ninja" ]; then
         -DACPP_TARGETS=generic \
         -DWITH_CUDA_BACKEND=ON \
         -DACPP_COMPILER_FEATURE_PROFILE=full \
+        -DhipSYCL_VERSION="24.10.0" \
         $CMAKE_ARGS
         # -DCMAKE_C_COMPILER_TARGET="${HOST_TRIPLE}" \
         # -DCMAKE_CXX_COMPILER_TARGET="${HOST_TRIPLE}" \
@@ -107,6 +126,24 @@ cmake --install "$BUILD_DIR" --prefix "$PREFIX"
 # Section 5b: Post-Install Path Adjustments
 # ==========================================================================
 find "$PREFIX/etc/AdaptiveCpp" -type f -name "*.json" -exec sed -i "s|${BUILD_PREFIX}|\$ACPP_PATH|g" {} +
+
+# Ship libdevice.10.bc inside the package at the AdaptiveCpp "redist" bitcode path.
+# This populates the primary lookup in LLVMToPtx.cpp::getDeviceLibPath(), which checks
+# $INSTALL_DIR/lib/hipSYCL/ext/bitcode/ptx/libdevice.10.bc via the runtime-relocatable
+# dladdr mechanism before falling back to the hardcoded ACPP_CUDA_DEVICE_LIBS_PATH macro.
+CUDA_LIBDEVICE_SRC="${BUILD_PREFIX}/targets/x86_64-linux/nvvm/libdevice/libdevice.10.bc"
+if [[ ! -f "${CUDA_LIBDEVICE_SRC}" ]]; then
+    # Fallback: search standard CUDA paths within BUILD_PREFIX
+    CUDA_LIBDEVICE_SRC="$(find "${BUILD_PREFIX}" -name "libdevice.10.bc" 2>/dev/null | head -1)"
+fi
+if [[ -z "${CUDA_LIBDEVICE_SRC}" ]] || [[ ! -f "${CUDA_LIBDEVICE_SRC}" ]]; then
+    echo "ERROR: Could not locate libdevice.10.bc in BUILD_PREFIX=${BUILD_PREFIX}"
+    exit 1
+fi
+ACPP_PTX_BITCODE_DIR="${PREFIX}/lib/hipSYCL/ext/bitcode/ptx"
+mkdir -p "${ACPP_PTX_BITCODE_DIR}"
+cp "${CUDA_LIBDEVICE_SRC}" "${ACPP_PTX_BITCODE_DIR}/libdevice.10.bc"
+echo "Installed libdevice.10.bc -> ${ACPP_PTX_BITCODE_DIR}/libdevice.10.bc"
 
 # ============================================================================
 # Section 6: IDE Tooling Compatibility (symlinks + clang.cfg)

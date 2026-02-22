@@ -60,7 +60,24 @@ def main [] {
                 exit 1
             }
             
-            print "  Status: OK (already exists)"
+            # Fetch tags and reset to the configured ref to prevent drift
+            print $"  Fetching tags and resetting to ($repo_ref_type): ($repo_ref)..."
+            git fetch --tags --depth 1 origin $repo_ref
+            if $env.LAST_EXIT_CODE != 0 {
+                # Fallback: full fetch if shallow fetch of specific ref fails
+                git fetch --tags origin
+                if $env.LAST_EXIT_CODE != 0 {
+                    print $"Error: Failed to fetch from remote for ($repo_name)"
+                    exit 1
+                }
+            }
+            git checkout $repo_ref
+            if $env.LAST_EXIT_CODE != 0 {
+                print $"Error: Failed to checkout ($repo_ref) for ($repo_name)"
+                exit 1
+            }
+            
+            print "  Status: OK (verified and reset to configured ref)"
         } else {
             # Clone repository (shallow)
             print "  Status: Cloning (shallow)..."
