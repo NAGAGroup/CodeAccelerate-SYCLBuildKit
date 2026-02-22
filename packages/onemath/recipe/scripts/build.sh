@@ -142,7 +142,7 @@ if [[ ! -f "${BUILD_DIR}/build.ninja" ]]; then
         -DCMAKE_C_FLAGS="${CFLAGS}" \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DONEMATH_SYCL_IMPLEMENTATION=hipsycl \
+        -DONEMATH_SYCL_IMPLEMENTATION=adaptivecpp \
         -DACPP_TARGETS=generic \
         -DTARGET_DOMAINS="blas" \
         -DENABLE_MKLCPU_BACKEND=OFF \
