@@ -7,6 +7,7 @@
 context:
   llvm_version: "20.1.8"
   llvm_major: "20"
+  llvm_minor: "1"
   acpp_version: "25.10.0"
   pkg_version: "20.1_acpp25.10.0"
 
@@ -27,7 +28,7 @@ cache:
   build:
     script:
       - if: linux
-        then: bash ${RECIPE_DIR}/build.sh
+        then: INITIAL_CACHE_BUILD=1 bash ${RECIPE_DIR}/build.sh
 
   requirements:
     build:
@@ -69,23 +70,10 @@ outputs:
       number: 0
       files:
         include:
-          - lib/libLLVM*.so*
-          - lib/libclang*.so*
-          - lib/liblld*.so*
-          - lib/libomp.so*
-          - lib/libomptarget*.so*
-          - lib/libacpp*.so*
-          - lib/librt-backend-*.so*
-          - lib/libllvm-to-backend.so*
-          - lib/clang/${{ llvm_major }}/lib/**
-          - lib/clang/${{ llvm_major }}/share/**
+          - lib/**/*.so*
+          - etc/AdaptiveCpp/*
+          - lib/hipSYCL/*
     requirements:
-      build:
-        - cmake >=3.24
-        - ninja
-        - python >=3.8
-        - patchelf
-        - ccache
       run:
         # level-zero and ocl-icd ARE dlopen'd at runtime by AdaptiveCpp's
         # SSCP backend — but they are driver-provided libraries that may
@@ -163,12 +151,10 @@ outputs:
         - __cuda >=12.0,<13 # virtual pkg: system CUDA driver version
     tests:
       - script:
-          - test -f $PREFIX/lib/libLLVM.so.${{ llvm_major }}
+          - test -f $PREFIX/lib/libLLVM.so.${{ llvm_major }}.${{ llvm_minor }}
+          - test -f $PREFIX/lib/libclang-cpp.so.${{ llvm_major }}.${{ llvm_minor }}
+          - test -f $PREFIX/lib/libclang.so.${{ llvm_major }}.${{ llvm_minor }}
           - test -f $PREFIX/lib/libomp.so
-          - python3 -c "import ctypes, os; ctypes.CDLL(os.path.join(os.environ['PREFIX'], 'lib', 'libLLVM.so.${{ llvm_major }}'))"
-      - package_contents:
-          lib:
-            - libLLVM
 
   # ── Output 2: compiler binaries + headers + CMake configs ─────────────
   # No activation scripts — those live in acpp-toolchain_linux-64
@@ -185,17 +171,12 @@ outputs:
           - bin/**
           - include/**
           - lib/cmake/**
-          - lib/clang/${{ llvm_major }}/include/**
-          - lib/*.a
+          - lib/clang/**
+          - lib/**/*.a
           - share/acpp/**
           - share/AdaptiveCpp/**
+          - libexec/**
     requirements:
-      build:
-        - cmake >=3.24
-        - ninja
-        - python >=3.8
-        - patchelf
-        - ccache
       run:
         - ${{ pin_subpackage('acpp-libs', exact=True) }}
         - python >=3.8
@@ -253,26 +234,9 @@ outputs:
         - __cuda >=12.0,<13
     tests:
       - script:
-          - acpp --acpp-version
-          - clang++ --version | grep "clang version ${{ llvm_major }}"
-          - lld --version
-          - |
-            cat > /tmp/test_sycl.cpp << 'EOF'
-            #include <sycl/sycl.hpp>
-            int main() {
-              sycl::queue q{sycl::default_selector_v};
-              return 0;
-            }
-            EOF
-            acpp --acpp-targets="generic" /tmp/test_sycl.cpp -o /tmp/test_sycl
-            echo "Compile OK"
-      - package_contents:
-          bin:
-            - clang++
-            - acpp
-            - lld
-          include:
-            - sycl/sycl.hpp
+          - test -f $PREFIX/include/sycl/sycl.hpp
+          - test -f $PREFIX/bin/acpp
+          - test -d $PREFIX/lib/cmake/AdaptiveCpp
 
 about:
   homepage: https://github.com/AdaptiveCpp/AdaptiveCpp

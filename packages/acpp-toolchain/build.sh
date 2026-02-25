@@ -51,7 +51,7 @@ LINK_JOBS=$((LINK_JOBS > CPU_COUNT ? CPU_COUNT : LINK_JOBS))
 echo "Using ${LINK_JOBS} parallel link jobs (${MEM_GB} GB RAM detected)"
 
 # ── Configure ─────────────────────────────────────────────────────────────
-BUILD_DIR="${SRC_DIR}/build"
+BUILD_DIR="${RECIPE_DIR}/build"
 mkdir -p "${BUILD_DIR}"
 cd "${BUILD_DIR}"
 
@@ -66,13 +66,17 @@ cd "${BUILD_DIR}"
 # these intermediate cmake calls without affecting the main build.
 export CMAKE_PREFIX_PATH="${BUILD_DIR}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
 
-# ── Skip configure+build if already completed (cache reuse across outputs) ─
-# rattler-build's experimental cache: section should handle this, but the
-# build script can be re-invoked for each output in practice. We guard the
-# expensive LLVM configure+build with a marker file(CMakeCache.txt)
-# so it only runs once. The install step always runs so each output gets files
-# copied to its own $PREFIX correctly.
-if [ ! -f "${BUILD_DIR}/CMakeCache.txt" ]; then
+if [ -f "${BUILD_DIR}/install/bin/acpp" ]; then
+  if [ -z "${INITIAL_CACHE_BUILD}" ]; then
+    cp -r "${BUILD_DIR}"/install/* "${PREFIX}"
+  fi
+else
+  # ── Skip configure+build if already completed (cache reuse across outputs) ─
+  # rattler-build's experimental cache: section should handle this, but the
+  # build script can be re-invoked for each output in practice. We guard the
+  # expensive LLVM configure+build with a marker file(CMakeCache.txt)
+  # so it only runs once. The install step always runs so each output gets files
+  # copied to its own $PREFIX correctly.
   cmake "${LLVM_SRC}/llvm" -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
     \
@@ -156,47 +160,17 @@ if [ ! -f "${BUILD_DIR}/CMakeCache.txt" ]; then
 
   # ── Build ──────────────────────────────────────────────────────────────────
   ninja -j"${CPU_COUNT}"
+
+  # ── Install ────────────────────────────────────────────────────────────────
+  cmake --install . --prefix "${BUILD_DIR}/install"
+
+  # ── No triple-named symlinks in the base package ─────────────────────────
+  # conda-forge's base compiler packages do NOT install triple-prefixed symlinks.
+  # Those belong entirely in acpp-toolchain-activation (the _linux-64 package).
+
+  # ── ccache stats ──────────────────────────────────────────────────────────
+  # Printed at end of build so hit rate is visible in rattler-build logs.
+  ccache --show-stats
+
+  echo "Build complete. Installed to ${BUILD_DIR}/install"
 fi
-
-# ── Install ────────────────────────────────────────────────────────────────
-cmake --install . --prefix "${PREFIX}"
-
-# ── No triple-named symlinks in the base package ─────────────────────────
-# conda-forge's base compiler packages do NOT install triple-prefixed symlinks.
-# Those belong entirely in acpp-toolchain-activation (the _linux-64 package).
-
-# ── ccache stats ──────────────────────────────────────────────────────────
-# Printed at end of build so hit rate is visible in rattler-build logs.
-ccache --show-stats
-
-# ── RPATH fixup with patchelf ─────────────────────────────────────────────
-echo "Fixing RPATHs..."
-
-# Shared libraries: $ORIGIN (they're all in lib/ together)
-find "${PREFIX}/lib" -name '*.so*' -type f | while read -r lib; do
-  if file "$lib" | grep -q 'ELF.*shared'; then
-    patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
-  fi
-done
-
-# Executables: $ORIGIN/../lib
-find "${PREFIX}/bin" -type f -executable | while read -r bin; do
-  if file "$bin" | grep -q 'ELF'; then
-    patchelf --set-rpath '$ORIGIN/../lib' "$bin" 2>/dev/null || true
-  fi
-done
-
-# Force DT_RPATH (not DT_RUNPATH) so conda libs take precedence over
-# LD_LIBRARY_PATH, preventing accidental loading of system LLVM.
-find "${PREFIX}/lib" -name '*.so*' -type f | while read -r lib; do
-  if file "$lib" | grep -q 'ELF.*shared'; then
-    patchelf --force-rpath "$lib" 2>/dev/null || true
-  fi
-done
-find "${PREFIX}/bin" -type f -executable | while read -r bin; do
-  if file "$bin" | grep -q 'ELF'; then
-    patchelf --force-rpath "$bin" 2>/dev/null || true
-  fi
-done
-
-echo "Build complete. Installed to ${PREFIX}"
