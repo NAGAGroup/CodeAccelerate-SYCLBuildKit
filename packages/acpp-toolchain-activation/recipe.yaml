@@ -1,0 +1,158 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+# acpp-toolchain_linux-64/recipe.yaml
+#
+# Pure activation package. No compilation. Installs only scripts + cmake file.
+
+context:
+  name: acpp-toolchain_linux-64
+  version: "20.1_acpp25.1.0"
+  acpp_toolchain_version: "20.1_acpp25.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# No source section — nothing to download or compile.
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    - if: linux
+      then: bash ${RECIPE_DIR}/build.sh
+
+requirements:
+  build:
+    - sed # for @VARIABLE@ substitution in build.sh
+  run:
+    - acpp-toolchain >=${{ acpp_toolchain_version }}
+    - acpp-libs >=${{ acpp_toolchain_version }}
+
+    # ── Sysroot ──────────────────────────────────────────────────────────────
+    # glibc 2.28 sysroot (AlmaLinux 8 repackage). Provides the --sysroot tree
+    # that the activation script wires into clang via CXXFLAGS and clang++.cfg.
+    - sysroot_linux-64 >=2.28
+
+    # ── C/C++ headers and compile-time support objects ────────────────────────
+    # These install into the sysroot tree and are required for compilation,
+    # not just runtime. Mirrors what clangxx_impl_linux-64 pulls in.
+    #
+    # libstdcxx-devel_linux-64: C++ stdlib headers (<iostream>, <vector>, etc.)
+    #   and libstdc++.a / libstdc++.so stubs. Without this, #include <iostream>
+    #   fails. Note: this is NOT libstdcxx-ng (which is runtime only).
+    - libstdcxx-devel_linux-64 >=13
+    #
+    # libgcc-devel_linux-64: crtbegin.o, crtend.o, libgcc.a, libgcc_s.so stub.
+    #   Required by the linker for every C/C++ binary. Without this, linking
+    #   fails with "cannot find crtbeginS.o".
+    - libgcc-devel_linux-64 >=13
+
+    # ── Runtime shared libraries ──────────────────────────────────────────────
+    # libgcc-ng / libstdcxx-ng: the actual .so files loaded at runtime by
+    # anything compiled with this toolchain. Required both here (so the
+    # activation env is self-contained) and propagated to downstream packages
+    # via strong run_exports on __glibc >=2.28 + acpp-libs.
+    - libgcc-ng >=13
+    - libstdcxx-ng >=13
+
+    # ── Linker and binutils ───────────────────────────────────────────────────
+    # binutils_linux-64: the activation wrapper that puts the triple-prefixed
+    # ld, ar, nm, ranlib, strip etc. on PATH. Our activation script sets
+    # LD, AR, NM, RANLIB, STRIP to the triple-prefixed forms; without this
+    # package those binaries don't exist.
+    - binutils_linux-64 >=2.40
+
+  run_exports:
+    # Strong: any package compiled with this toolchain inherits these
+    # constraints in its run requirements automatically.
+    strong:
+      - __glibc >=2.28
+      - acpp-libs >=${{ acpp_toolchain_version }}
+
+  # Block all conda-forge clang/LLVM toolchain packages.
+  # This activation package writes clang .cfg files and sets CC/CXX/CFLAGS.
+  # Any conda-forge clang activation package in the same environment would
+  # overwrite these, silently breaking SYCL compilation. Users who need an
+  # official clang toolchain should use a separate environment.
+  run_constraints:
+    # ── Version-agnostic metapackages (user-facing install targets) ──
+    # Blocking these is sufficient to prevent installation of any versioned
+    # clang/LLVM package, since clang-N depends on these metapackages.
+    - clang ==9999999999
+    - clangxx ==9999999999
+    - clangdev ==9999999999
+    - llvmdev ==9999999999
+    - clang-tools ==9999999999
+    - clang-format ==9999999999
+    # ── Our LLVM version explicitly (direct conflict) ──
+    # clang-20 / llvm-20 match our bundled LLVM version exactly.
+    # Other versioned packages (clang-19, clang-21, etc.) are blocked
+    # transitively since they depend on libclang-cpp19/21 which are blocked below.
+    - clang-20 ==9999999999
+    - llvm-20 ==9999999999
+    # ── Shared library packages (conflict with our bundled .so files) ──
+    # These are the real blocking mechanism for all versioned clang-N packages:
+    # clang-21 → libclang-cpp21 (blocked), clang-19 → libclang-cpp19 (blocked), etc.
+    - libclang-cpp21 ==9999999999
+    - libclang-cpp20 ==9999999999
+    - libclang-cpp19 ==9999999999
+    - libllvm21 ==9999999999
+    - libllvm20 ==9999999999
+    - libllvm19 ==9999999999
+    - libclang13 ==9999999999
+    - libclang ==9999999999
+    # ── Activation packages (stomp on CC/CXX/CFLAGS env vars) ──
+    - clang_linux-64 ==9999999999
+    - clangxx_linux-64 ==9999999999
+    - clang_impl_linux-64 ==9999999999
+    - clangxx_impl_linux-64 ==9999999999
+    # ── CUDA version (must match major version built against) ──
+    # acpp embeds CUDA 12 .so names at build time (e.g. libcudart.so.12).
+    # Installing a different major at runtime causes symbol lookup failures.
+    # We do NOT force CUDA as a run dep — users who don't use CUDA don't
+    # need it. But if they do install it, the major must match.
+    - cuda-cudart >=12.0,<13 # conda CUDA runtime
+    - cuda-nvrtc >=12.0,<13 # conda CUDA runtime compilation
+    - cuda >=12.0,<13 # conda CUDA meta-package
+    - __cuda >=12.0,<13 # virtual pkg: system CUDA driver version
+
+tests:
+  - package_contents:
+      files:
+        - etc/conda/activate.d/activate-acpp-linux-64.sh
+        - etc/conda/deactivate.d/deactivate-acpp-linux-64.sh
+        - share/acpp/toolchain/acpp-linux-64.cmake
+
+  - script:
+      - |
+        export CONDA_PREFIX="${PREFIX}"
+        source "${PREFIX}/etc/conda/activate.d/activate-acpp-linux-64.sh"
+        test -n "${CC}"                          || (echo "CC not set" && exit 1)
+        test -n "${CXX}"                         || (echo "CXX not set" && exit 1)
+        test -n "${CONDA_BUILD_SYSROOT}"         || (echo "CONDA_BUILD_SYSROOT not set" && exit 1)
+        echo "${CXXFLAGS}" | grep -q "\-\-sysroot=" || (echo "--sysroot not in CXXFLAGS" && exit 1)
+        echo "${CC}" | grep -q "x86_64-conda-linux-gnu" || (echo "CC not triple-prefixed" && exit 1)
+        test -f "${PREFIX}/bin/clang++.cfg"      || (echo "clang++.cfg not written" && exit 1)
+        echo "Activation test passed."
+
+  - script:
+      - |
+        SYSROOT="${PREFIX}/x86_64-conda-linux-gnu/sysroot"
+        test -f "${SYSROOT}/usr/include/stdio.h"         || (echo "sysroot missing stdio.h" && exit 1)
+        test -f "${SYSROOT}/usr/include/linux/version.h" || (echo "sysroot missing kernel headers" && exit 1)
+        echo "Sysroot content test passed."
+
+about:
+  homepage: https://github.com/AdaptiveCpp/AdaptiveCpp
+  license: Apache-2.0
+  summary: >-
+    Sysroot-aware AdaptiveCpp SYCL compiler activation for Linux x86_64.
+    Enables building redistributable SYCL libraries targeting glibc >=2.28.
+  description: |
+    Activation package companion to acpp-toolchain. When activated, sets CC,
+    CXX, AR, NM, RANLIB, STRIP, CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS,
+    CMAKE_ARGS, CONDA_BUILD_SYSROOT, and ACPP_TARGETS. Writes clang .cfg
+    files so --sysroot is applied even when clang is invoked directly
+    (e.g. internally by the acpp driver). Targets glibc 2.28 (RHEL 8 /
+    AlmaLinux 8 / Rocky 8 / Ubuntu 20.04+).

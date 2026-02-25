@@ -9,3 +9,4 @@ build
 packages/adaptivecpp/llvm-project
 packages/adaptivecpp/llvm-project
 packages/onemath/repo
+output/

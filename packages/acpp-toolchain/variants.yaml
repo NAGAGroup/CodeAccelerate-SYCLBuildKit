@@ -1,0 +1,20 @@
+# variants.yaml
+c_compiler:
+  - gcc
+
+cxx_compiler:
+  - gxx
+
+c_stdlib:
+  - sysroot
+
+c_stdlib_version:
+  - "2.28"
+
+# Pin the compiler version explicitly so rattler-build picks the right
+# conda-forge activation package (gcc_linux-64 / gxx_linux-64)
+c_compiler_version:
+  - "13"
+
+cxx_compiler_version:
+  - "13"
