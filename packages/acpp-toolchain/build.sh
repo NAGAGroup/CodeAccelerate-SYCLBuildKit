@@ -30,18 +30,6 @@ echo "ccache dir: ${CCACHE_DIR}"
 LLVM_SRC="${SRC_DIR}/llvm-project"
 ACPP_SRC="${SRC_DIR}/AdaptiveCpp"
 
-# ── CUDA detection ────────────────────────────────────────────────────────
-CUDA_ROOT=""
-if [ -d "${PREFIX}/targets/x86_64-linux" ]; then
-  CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
-  echo "CUDA found at: ${CUDA_ROOT}"
-elif [ -d "${BUILD_PREFIX}/targets/x86_64-linux" ]; then
-  CUDA_ROOT="${BUILD_PREFIX}/targets/x86_64-linux"
-  echo "CUDA found at: ${CUDA_ROOT}"
-else
-  echo "WARNING: No conda CUDA toolkit found. NVPTX backend built without CUDA runtime."
-fi
-
 # ── Parallel link job calculation ─────────────────────────────────────────
 # Each LLD link of libLLVM.so can consume ~4 GB RAM.
 MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -110,9 +98,7 @@ else
     -DWITH_CPU_BACKEND=ON \
     -DWITH_ACCELERATED_CPU=ON \
     -DACPP_COMPILER_FEATURE_PROFILE=full \
-    \
-    `# ── CUDA path ──` \
-    ${CUDA_ROOT:+"-DCUDA_TOOLKIT_ROOT_DIR=${CUDA_ROOT}"} \
+    -DROCM_DEVICE_LIBS_PATH="${PREFIX}/lib/amdgcn/bitcode" \
     \
     `# ── OpenMP: build libomp, skip GPU offloading (SSCP handles that) ──` \
     -DOPENMP_ENABLE_LIBOMPTARGET=OFF \
