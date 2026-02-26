@@ -18,3 +18,9 @@ c_compiler_version:
 
 cxx_compiler_version:
   - "13"
+
+cxx_stdlib:
+  - libstdcxx-devel
+
+cxx_stdlib_version:
+  - "13"

@@ -36,6 +36,7 @@ cache:
       - ${{ compiler('c') }}
       - ${{ compiler('cxx') }}
       - ${{ stdlib('c') }}
+      - ${{ stdlib('cxx') }}
       - cmake >=3.24
       - ninja
       - python >=3.8
@@ -54,9 +55,7 @@ cache:
       - opencl-headers # OpenCL headers for AdaptiveCpp SSCP backend
       - if: linux
         then:
-          - cuda-cudart-dev >=12.0,<13
-          - cuda-nvcc >=12.0,<13
-          - cuda-driver-dev >=12.0,<13
+          - cuda
 
 outputs:
   # ── Output 1: shared libraries only ──────────────────────────────────────
@@ -70,27 +69,20 @@ outputs:
       number: 0
       files:
         include:
-          - lib/**/*.so*
-          - etc/AdaptiveCpp/*
-          - lib/hipSYCL/*
+          # All shared libraries (LLVM, Clang, acpp-rt, acpp-common, OMP)
+          - lib/*.so*
+          - lib/x86_64-conda-linux-gnu/*.so*
+          # acpp runtime plugin backends (dlopen'd at runtime)
+          - lib/hipSYCL/**
+          # acpp runtime config (JSON manifests read at runtime)
+          - etc/AdaptiveCpp/**
+          # OMP debugger extension (runtime, used when debugging OMP kernels)
+          - share/gdb/**
     requirements:
       run:
-        # level-zero and ocl-icd ARE dlopen'd at runtime by AdaptiveCpp's
-        # SSCP backend — but they are driver-provided libraries that may
-        # not be available in all conda environments. We list them here so
-        # conda's solver installs the ICD loaders, but AdaptiveCpp handles
-        # missing drivers gracefully at runtime.
-        - level-zero # dlopen'd at runtime by the Level Zero SSCP backend
-        - ocl-icd # dlopen'd at runtime by the OpenCL SSCP backend
-        # libstdcxx-ng / libgcc-ng omitted: baked in by gxx_linux-64 build.
-      # Downstream packages that have acpp-libs in host: automatically
-      # get a run: dependency pinned to the same major.minor version.
-      # Suppress automatic run dep injection from host libs.
-      # Like clangdev, zlib/zstd/libxml2 are used during compilation of LLVM
-      # itself (or statically inlined) but are NOT linked as dynamic dependencies
-      # of our shipped .so files. Verify with:
-      #   readelf -d $PREFIX/lib/libLLVM.so.20 | grep NEEDED
-      # You should see libstdc++, libm, libc, libgcc_s — but NOT libz/libzstd/libxml2.
+        - level-zero
+        - ocl-icd
+        - libstdcxx >=13
       ignore_run_exports:
         by_name:
           - zlib
@@ -99,8 +91,6 @@ outputs:
           - level-zero-devel
           - ocl-icd
           - opencl-headers
-          - cuda-cudart-dev # [linux]
-          - cuda-driver-dev # [linux]
       run_exports:
         - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
       # Block all conda-forge clang/LLVM toolchain packages.
@@ -147,14 +137,24 @@ outputs:
         # need it. But if they do install it, the major must match.
         - cuda-cudart >=12.0,<13 # conda CUDA runtime
         - cuda-nvrtc >=12.0,<13 # conda CUDA runtime compilation
+        - cuda-nvvm >=12.0,<13 # conda CUDA nvvm libdevice
         - cuda >=12.0,<13 # conda CUDA meta-package
         - __cuda >=12.0,<13 # virtual pkg: system CUDA driver version
     tests:
-      - script:
-          - test -f $PREFIX/lib/libLLVM.so.${{ llvm_major }}.${{ llvm_minor }}
-          - test -f $PREFIX/lib/libclang-cpp.so.${{ llvm_major }}.${{ llvm_minor }}
-          - test -f $PREFIX/lib/libclang.so.${{ llvm_major }}.${{ llvm_minor }}
-          - test -f $PREFIX/lib/libomp.so
+      - package_contents:
+          lib:
+            - LLVM # matches libLLVM.so.20.1
+            - clang # matches libclang.so.20.1.8
+            - clang-cpp # matches libclang-cpp.so.20.1
+            - acpp-rt # matches libacpp-rt.so
+            - acpp-common # matches libacpp-common.so
+          files:
+            - lib/hipSYCL/librt-backend-ze.so
+            - lib/hipSYCL/librt-backend-ocl.so
+            - lib/hipSYCL/librt-backend-omp.so
+            - lib/hipSYCL/bitcode/libkernel-sscp-spirv-core.bc
+            - lib/hipSYCL/llvm-to-backend/libllvm-to-backend.so
+            - etc/AdaptiveCpp/acpp-core.json
 
   # ── Output 2: compiler binaries + headers + CMake configs ─────────────
   # No activation scripts — those live in acpp-toolchain_linux-64
@@ -168,18 +168,36 @@ outputs:
       number: 0
       files:
         include:
+          # All binaries (clang, acpp, lld, llvm-*, syclcc, etc.)
           - bin/**
+          # All headers (LLVM, Clang, LLD, AdaptiveCpp SYCL, OpenCL, CL/)
           - include/**
+          # CMake integration files for all projects
           - lib/cmake/**
+          # Clang built-in headers (omp.h, sanitizer headers, etc.)
           - lib/clang/**
+          # All static libraries (LLVM, Clang, LLD, liblld*.a, libacpp-*.a)
           - lib/**/*.a
-          - share/acpp/**
-          - share/AdaptiveCpp/**
+          # Python scan-build helpers (clang static analyzer tooling)
+          - lib/libear/**
+          - lib/libscanbuild/**
+          # Clang format scripts, scan-build/scan-view UI, opt-viewer
+          - share/clang/**
+          - share/opt-viewer/**
+          - share/scan-build/**
+          - share/scan-view/**
+          - share/man/**
+          # OpenCL headers CMake configs (installed by opencl-headers as part of LLVM build)
+          - share/cmake/**
+          - share/pkgconfig/**
+          # libexec scan-build interceptors
           - libexec/**
     requirements:
       run:
         - ${{ pin_subpackage('acpp-libs', exact=True) }}
         - python >=3.8
+        - libgcc-devel_linux-64 >=13
+        - libstdcxx-devel_linux-64 >=13
       # Same pattern as clangdev: suppress run dep injection from
       # build-time-only host packages.
       ignore_run_exports:
@@ -190,53 +208,30 @@ outputs:
           - level-zero-devel
           - ocl-icd
           - opencl-headers
-          - cuda-cudart-dev # [linux]
-          - cuda-driver-dev # [linux]
           # Note: no etc/conda/** here — activation belongs in _linux-64
       # Strong run_exports: packages compiled WITH this toolchain
       # automatically depend on acpp-libs at runtime.
       run_exports:
         strong:
           - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
-      # Block all conda-forge clang/LLVM toolchain packages.
-      # Our package installs clang++, lld, and related binaries into $PREFIX/bin.
-      # A second conda-forge clang installation would shadow these in PATH,
-      # silently breaking SYCL compilation.
-      run_constraints:
-        # ── Version-agnostic metapackages (user-facing install targets) ──
-        - clang ==9999999999
-        - clangxx ==9999999999
-        - clangdev ==9999999999
-        - llvmdev ==9999999999
-        - clang-tools ==9999999999
-        - clang-format ==9999999999
-        # ── Our LLVM version explicitly (direct conflict) ──
-        - clang-20 ==9999999999
-        - llvm-20 ==9999999999
-        # ── Shared library packages (conflict with our bundled .so files) ──
-        - libclang-cpp21 ==9999999999
-        - libclang-cpp20 ==9999999999
-        - libclang-cpp19 ==9999999999
-        - libllvm21 ==9999999999
-        - libllvm20 ==9999999999
-        - libllvm19 ==9999999999
-        - libclang13 ==9999999999
-        - libclang ==9999999999
-        # ── Activation packages (stomp on CC/CXX/CFLAGS env vars) ──
-        - clang_linux-64 ==9999999999
-        - clangxx_linux-64 ==9999999999
-        - clang_impl_linux-64 ==9999999999
-        - clangxx_impl_linux-64 ==9999999999
-        # ── CUDA version (must match major version built against) ──
-        - cuda-cudart >=12.0,<13
-        - cuda-nvrtc >=12.0,<13
-        - cuda >=12.0,<13
-        - __cuda >=12.0,<13
     tests:
-      - script:
-          - test -f $PREFIX/include/sycl/sycl.hpp
-          - test -f $PREFIX/bin/acpp
-          - test -d $PREFIX/lib/cmake/AdaptiveCpp
+      - package_contents:
+          bin:
+            - clang # matches bin/clang (symlink to clang-20)
+            - acpp # AdaptiveCpp SYCL compiler driver
+            - acpp-info # runtime/target info tool
+            - lld # linker
+            - llvm-ar
+            - llvm-config
+          include:
+            - AdaptiveCpp/sycl/sycl.hpp # main SYCL header
+            - clang/Basic/Version.h
+          files:
+            - lib/cmake/AdaptiveCpp/adaptivecpp-config-version.cmake
+            - lib/cmake/llvm/LLVMConfig.cmake
+            - lib/cmake/clang/ClangConfig.cmake
+            - lib/clang/20/include/omp.h
+            - lib/**/*.a
 
 about:
   homepage: https://github.com/AdaptiveCpp/AdaptiveCpp

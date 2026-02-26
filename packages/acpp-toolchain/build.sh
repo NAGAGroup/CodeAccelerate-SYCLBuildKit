@@ -21,6 +21,7 @@ echo "Build compiler: $($CXX --version | head -1)"
 # attempts. rattler-build wipes $SRC_DIR on each invocation, so any cache
 # inside the work dir is lost. Configurable via NAGA_ACPP_CCACHE_DIR for CI
 # or shared cache scenarios.
+export USE_CCACHE=ON # leave set to on, if you have ccache/sccache installed for faster rebuild times
 export CCACHE_DIR="${RECIPE_DIR}/.ccache"
 mkdir -p "${CCACHE_DIR}"
 echo "ccache dir: ${CCACHE_DIR}"
@@ -32,10 +33,10 @@ ACPP_SRC="${SRC_DIR}/AdaptiveCpp"
 # ── CUDA detection ────────────────────────────────────────────────────────
 CUDA_ROOT=""
 if [ -d "${PREFIX}/targets/x86_64-linux" ]; then
-  CUDA_ROOT="${PREFIX}"
+  CUDA_ROOT="${PREFIX}/targets/x86_64-linux"
   echo "CUDA found at: ${CUDA_ROOT}"
 elif [ -d "${BUILD_PREFIX}/targets/x86_64-linux" ]; then
-  CUDA_ROOT="${BUILD_PREFIX}"
+  CUDA_ROOT="${BUILD_PREFIX}/targets/x86_64-linux"
   echo "CUDA found at: ${CUDA_ROOT}"
 else
   echo "WARNING: No conda CUDA toolkit found. NVPTX backend built without CUDA runtime."
@@ -51,7 +52,7 @@ LINK_JOBS=$((LINK_JOBS > CPU_COUNT ? CPU_COUNT : LINK_JOBS))
 echo "Using ${LINK_JOBS} parallel link jobs (${MEM_GB} GB RAM detected)"
 
 # ── Configure ─────────────────────────────────────────────────────────────
-BUILD_DIR="${RECIPE_DIR}/build"
+BUILD_DIR="${SRC_DIR}/build"
 mkdir -p "${BUILD_DIR}"
 cd "${BUILD_DIR}"
 
@@ -67,9 +68,7 @@ cd "${BUILD_DIR}"
 export CMAKE_PREFIX_PATH="${BUILD_DIR}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
 
 if [ -f "${BUILD_DIR}/install/bin/acpp" ]; then
-  if [ -z "${INITIAL_CACHE_BUILD}" ]; then
-    cp -r "${BUILD_DIR}"/install/* "${PREFIX}"
-  fi
+  cp -r "${BUILD_DIR}"/install/* "${PREFIX}"
 else
   # ── Skip configure+build if already completed (cache reuse across outputs) ─
   # rattler-build's experimental cache: section should handle this, but the
