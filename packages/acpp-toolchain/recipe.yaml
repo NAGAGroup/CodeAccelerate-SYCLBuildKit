@@ -9,7 +9,7 @@ context:
   llvm_major: "20"
   llvm_minor: "1"
   acpp_version: "25.10.0"
-  pkg_version: "20.1_acpp25.10.0"
+  pkg_version: "20.1.8_acpp25.10.0"
 
 recipe:
   name: acpp-toolchain-split
@@ -26,9 +26,7 @@ cache:
       target_directory: AdaptiveCpp
 
   build:
-    script:
-      - if: linux
-        then: INITIAL_CACHE_BUILD=1 bash ${RECIPE_DIR}/build.sh
+    script: build.sh
 
   requirements:
     build:
@@ -53,9 +51,13 @@ cache:
       - level-zero-devel # Level Zero headers for AdaptiveCpp SSCP backend
       - ocl-icd # OpenCL ICD loader (needed at AdaptiveCpp build time)
       - opencl-headers # OpenCL headers for AdaptiveCpp SSCP backend
+      - numactl
       - if: linux
         then:
-          - cuda
+          - cuda >=12,<13
+          - hipcc >=6,<7
+          - rocm-device-libs >=6,<7
+          - libllvm21
 
 outputs:
   # ── Output 1: shared libraries only ──────────────────────────────────────
@@ -63,9 +65,7 @@ outputs:
       name: acpp-libs
       version: ${{ pkg_version }}
     build:
-      script:
-        - if: linux
-          then: bash ${RECIPE_DIR}/build.sh
+      script: build.sh
       number: 0
       files:
         include:
@@ -78,8 +78,11 @@ outputs:
           - etc/AdaptiveCpp/**
           # OMP debugger extension (runtime, used when debugging OMP kernels)
           - share/gdb/**
+          # Activation script that symlinks device bitcode files if they exist
+          - etc/conda/activate.d/acpp-libs-activate.sh
     requirements:
       run:
+        - numactl
         - level-zero
         - ocl-icd
         - libstdcxx >=13
@@ -99,47 +102,26 @@ outputs:
       # linker to load the wrong library depending on link order. Users who
       # need an official clang/LLVM toolchain should use a separate environment.
       run_constraints:
-        # ── Version-agnostic metapackages (user-facing install targets) ──
-        # Blocking these is sufficient to prevent installation of any versioned
-        # clang/LLVM package, since clang-N depends on these metapackages.
-        - clang ==9999999999
-        - clangxx ==9999999999
-        - clangdev ==9999999999
-        - llvmdev ==9999999999
-        - clang-tools ==9999999999
-        - clang-format ==9999999999
-        # ── Our LLVM version explicitly (direct conflict) ──
-        # clang-20 / llvm-20 match our bundled LLVM version exactly.
-        # Other versioned packages (clang-19, clang-21, etc.) are blocked
-        # transitively since they depend on libclang-cpp19/21 which are blocked below.
-        - clang-20 ==9999999999
-        - llvm-20 ==9999999999
-        # ── Shared library packages (conflict with our bundled .so files) ──
-        # These are the real blocking mechanism for all versioned clang-N packages:
-        # clang-21 → libclang-cpp21 (blocked), clang-19 → libclang-cpp19 (blocked), etc.
-        - libclang-cpp21 ==9999999999
-        - libclang-cpp20 ==9999999999
-        - libclang-cpp19 ==9999999999
-        - libllvm21 ==9999999999
-        - libllvm20 ==9999999999
-        - libllvm19 ==9999999999
-        - libclang13 ==9999999999
-        - libclang ==9999999999
-        # ── Activation packages (stomp on CC/CXX/CFLAGS env vars) ──
+        # Activation packages — stomp CC/CXX/CFLAGS
         - clang_linux-64 ==9999999999
         - clangxx_linux-64 ==9999999999
         - clang_impl_linux-64 ==9999999999
         - clangxx_impl_linux-64 ==9999999999
-        # ── CUDA version (must match major version built against) ──
-        # acpp embeds CUDA 12 .so names at build time (e.g. libcudart.so.12).
-        # Installing a different major at runtime causes symbol lookup failures.
-        # We do NOT force CUDA as a run dep — users who don't use CUDA don't
-        # need it. But if they do install it, the major must match.
-        - cuda-cudart >=12.0,<13 # conda CUDA runtime
-        - cuda-nvrtc >=12.0,<13 # conda CUDA runtime compilation
-        - cuda-nvvm >=12.0,<13 # conda CUDA nvvm libdevice
-        - cuda >=12.0,<13 # conda CUDA meta-package
-        - __cuda >=12.0,<13 # virtual pkg: system CUDA driver version
+        # Dev metapackages — install unversioned symlinks + headers that conflict
+        - llvmdev ==9999999999
+        - clangdev ==9999999999
+        # Versioned libs that would conflict with our bundled .so files
+        - libllvm20 ==9999999999
+        - libclang20 ==9999999999
+        - libclang-cpp20 ==9999999999
+        # CUDA/ROCm version guards
+        - cuda-cudart >=12.0,<13
+        - cuda-nvrtc >=12.0,<13
+        - cuda-nvvm >=12.0,<13
+        - cuda >=12.0,<13
+        - __cuda >=12.0,<13
+        - hip-runtime-amd >=6,<7
+        - rocm-device-libs >=6,<7
     tests:
       - package_contents:
           lib:
@@ -162,9 +144,7 @@ outputs:
       name: acpp-toolchain
       version: ${{ pkg_version }}
     build:
-      script:
-        - if: linux
-          then: bash ${RECIPE_DIR}/build.sh
+      script: build.sh
       number: 0
       files:
         include:
@@ -192,14 +172,70 @@ outputs:
           - share/pkgconfig/**
           # libexec scan-build interceptors
           - libexec/**
+        exclude:
+          # clang-tools binaries live in acpp-clang-tools
+          - bin/amdgpu-arch
+          - bin/clang-apply-replacements
+          - bin/clang-apply-replacements-${{ llvm_major }}
+          - bin/clang-change-namespace
+          - bin/clang-change-namespace-${{ llvm_major }}
+          - bin/clang-check
+          - bin/clang-check-${{ llvm_major }}
+          - bin/clang-doc
+          - bin/clang-doc-${{ llvm_major }}
+          - bin/clang-extdef-mapping
+          - bin/clang-extdef-mapping-${{ llvm_major }}
+          - bin/clang-format
+          - bin/clang-format-${{ llvm_major }}
+          - bin/clang-include-cleaner
+          - bin/clang-include-cleaner-${{ llvm_major }}
+          - bin/clang-include-fixer
+          - bin/clang-include-fixer-${{ llvm_major }}
+          - bin/clang-installapi
+          - bin/clang-installapi-${{ llvm_major }}
+          - bin/clang-linker-wrapper
+          - bin/clang-linker-wrapper-${{ llvm_major }}
+          - bin/clang-move
+          - bin/clang-move-${{ llvm_major }}
+          - bin/clang-nvlink-wrapper
+          - bin/clang-nvlink-wrapper-${{ llvm_major }}
+          - bin/clang-offload-bundler
+          - bin/clang-offload-bundler-${{ llvm_major }}
+          - bin/clang-offload-packager
+          - bin/clang-offload-packager-${{ llvm_major }}
+          - bin/clang-query
+          - bin/clang-query-${{ llvm_major }}
+          - bin/clang-refactor
+          - bin/clang-refactor-${{ llvm_major }}
+          - bin/clang-reorder-fields
+          - bin/clang-reorder-fields-${{ llvm_major }}
+          - bin/clang-repl
+          - bin/clang-repl-${{ llvm_major }}
+          - bin/clang-scan-deps
+          - bin/clang-scan-deps-${{ llvm_major }}
+          - bin/clang-sycl-linker
+          - bin/clang-sycl-linker-${{ llvm_major }}
+          - bin/clang-tidy
+          - bin/clang-tidy-${{ llvm_major }}
+          - bin/clangd
+          - bin/diagtool
+          - bin/find-all-symbols
+          - bin/git-clang-format
+          - bin/hmaptool
+          - bin/modularize
+          - bin/nvptx-arch
+          - bin/offload-arch
+          - bin/pp-trace
+          - bin/run-clang-tidy
+          - bin/scan-build
+          - bin/scan-build-py
+          - bin/scan-view
     requirements:
       run:
         - ${{ pin_subpackage('acpp-libs', exact=True) }}
         - python >=3.8
         - libgcc-devel_linux-64 >=13
         - libstdcxx-devel_linux-64 >=13
-      # Same pattern as clangdev: suppress run dep injection from
-      # build-time-only host packages.
       ignore_run_exports:
         by_name:
           - zlib
@@ -208,9 +244,6 @@ outputs:
           - level-zero-devel
           - ocl-icd
           - opencl-headers
-          # Note: no etc/conda/** here — activation belongs in _linux-64
-      # Strong run_exports: packages compiled WITH this toolchain
-      # automatically depend on acpp-libs at runtime.
       run_exports:
         strong:
           - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
@@ -232,6 +265,110 @@ outputs:
             - lib/cmake/clang/ClangConfig.cmake
             - lib/clang/20/include/omp.h
             - lib/**/*.a
+
+  # ── Output 3: clang tools (format, tidy, clangd, etc.) ───────────────
+  # Drop-in replacement for conda-forge's clang-tools package.
+  # Built against our bundled LLVM so tool behavior matches the compiler.
+  # Installing this blocks conda-forge clang-tools since binaries conflict.
+  - package:
+      name: acpp-clang-tools
+      version: ${{ pkg_version }}
+    build:
+      script: build.sh
+      number: 0
+      files:
+        include:
+          - bin/amdgpu-arch
+          - bin/clang-apply-replacements
+          - bin/clang-apply-replacements-${{ llvm_major }}
+          - bin/clang-change-namespace
+          - bin/clang-change-namespace-${{ llvm_major }}
+          - bin/clang-check
+          - bin/clang-check-${{ llvm_major }}
+          - bin/clang-doc
+          - bin/clang-doc-${{ llvm_major }}
+          - bin/clang-extdef-mapping
+          - bin/clang-extdef-mapping-${{ llvm_major }}
+          - bin/clang-format
+          - bin/clang-format-${{ llvm_major }}
+          - bin/clang-include-cleaner
+          - bin/clang-include-cleaner-${{ llvm_major }}
+          - bin/clang-include-fixer
+          - bin/clang-include-fixer-${{ llvm_major }}
+          - bin/clang-installapi
+          - bin/clang-installapi-${{ llvm_major }}
+          - bin/clang-linker-wrapper
+          - bin/clang-linker-wrapper-${{ llvm_major }}
+          - bin/clang-move
+          - bin/clang-move-${{ llvm_major }}
+          - bin/clang-nvlink-wrapper
+          - bin/clang-nvlink-wrapper-${{ llvm_major }}
+          - bin/clang-offload-bundler
+          - bin/clang-offload-bundler-${{ llvm_major }}
+          - bin/clang-offload-packager
+          - bin/clang-offload-packager-${{ llvm_major }}
+          - bin/clang-query
+          - bin/clang-query-${{ llvm_major }}
+          - bin/clang-refactor
+          - bin/clang-refactor-${{ llvm_major }}
+          - bin/clang-reorder-fields
+          - bin/clang-reorder-fields-${{ llvm_major }}
+          - bin/clang-repl
+          - bin/clang-repl-${{ llvm_major }}
+          - bin/clang-scan-deps
+          - bin/clang-scan-deps-${{ llvm_major }}
+          - bin/clang-sycl-linker
+          - bin/clang-sycl-linker-${{ llvm_major }}
+          - bin/clang-tidy
+          - bin/clang-tidy-${{ llvm_major }}
+          - bin/clangd
+          - bin/diagtool
+          - bin/find-all-symbols
+          - bin/git-clang-format
+          - bin/hmaptool
+          - bin/modularize
+          - bin/nvptx-arch
+          - bin/offload-arch
+          - bin/pp-trace
+          - bin/run-clang-tidy
+          - bin/scan-build
+          - bin/scan-build-py
+          - bin/scan-view
+          # scan-build/scan-view support files
+          - share/clang/**
+          - share/scan-build/**
+          - share/scan-view/**
+          - libexec/**
+    requirements:
+      run:
+        - ${{ pin_subpackage('acpp-libs', exact=True) }}
+        - python >=3.8
+      ignore_run_exports:
+        by_name:
+          - zlib
+          - zstd
+          - libxml2-devel
+          - level-zero-devel
+          - ocl-icd
+          - opencl-headers
+      run_constraints:
+        # Block conda-forge clang-tools packages — binary conflicts on
+        # bin/clang-format, bin/clang-tidy, bin/clangd, etc.
+        - clang-tools ==9999999999
+        - clang-format ==9999999999
+        - clang-tidy ==9999999999
+        - clangd ==9999999999
+    tests:
+      - package_contents:
+          bin:
+            - clang-format
+            - clang-tidy
+            - clangd
+            - clang-apply-replacements
+            - clang-query
+            - clang-repl
+            - run-clang-tidy
+            - scan-build
 
 about:
   homepage: https://github.com/AdaptiveCpp/AdaptiveCpp

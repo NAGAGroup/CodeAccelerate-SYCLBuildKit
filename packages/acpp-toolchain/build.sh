@@ -57,6 +57,16 @@ export CMAKE_PREFIX_PATH="${BUILD_DIR}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}
 
 if [ -f "${BUILD_DIR}/install/bin/acpp" ]; then
   cp -r "${BUILD_DIR}"/install/* "${PREFIX}"
+
+  mkdir -p "${PREFIX}/etc/conda/activation.d"
+  cp "${RECIPE_DIR}/acpp-libs-activate.sh" "${PREFIX}/etc/conda/activation.d"
+
+  # Remove unversioned symlinks that would conflict with other conda packages
+  rm -f "${PREFIX}/lib/libLLVM.so"
+  rm -f "${PREFIX}/lib/libLTO.so"
+  rm -f "${PREFIX}/lib/libRemarks.so"
+  rm -f "${PREFIX}/lib/libclang.so"
+  rm -f "${PREFIX}/lib/libclang-cpp.so"
 else
   # ── Skip configure+build if already completed (cache reuse across outputs) ─
   # rattler-build's experimental cache: section should handle this, but the
@@ -73,10 +83,13 @@ else
     \
     `# ── LLVM target and project selection ──` \
     -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" \
-    -DLLVM_ENABLE_PROJECTS="clang;lld;openmp" \
+    -DLLVM_ENABLE_PROJECTS="clang;lld;openmp;clang-tools-extra" \
     `# compiler-rt goes in ENABLE_RUNTIMES, not ENABLE_PROJECTS` \
     `# (ENABLE_PROJECTS is deprecated for compiler-rt in LLVM 20+)` \
     -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
+    -DLLVM_BUILD_TOOLS=ON \
+    -DCLANG_BUILD_TOOLS=ON \
+    -DLLVM_INSTALL_TOOLCHAIN_ONLY=OFF \
     \
     `# ── Shared libLLVM (required for SSCP JIT at runtime) ──` \
     -DLLVM_BUILD_LLVM_DYLIB=ON \
