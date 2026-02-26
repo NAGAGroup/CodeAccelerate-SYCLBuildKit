@@ -1,7 +1,0 @@
-# Repository definitions for oneMath package
-# Used by init-repos.nu script to clone/verify git repositories
-
-[repos.onemath]
-url = "https://github.com/uxlfoundation/oneMath.git"
-tag = "v0.9"
-path = "repo"
