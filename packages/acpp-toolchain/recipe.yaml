@@ -83,11 +83,12 @@ outputs:
           - etc/conda/activate.d/acpp-libs-activate.sh
     requirements:
       run:
+        - openmp
         - numactl
         - libstdcxx >=13
       ignore_run_exports:
         by_name:
-          - level-zero-devel
+          - level-zero
       run_exports:
         - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
       # Block all conda-forge clang/LLVM toolchain packages.
@@ -232,7 +233,7 @@ outputs:
         - libstdcxx-devel_linux-64 >=13
       ignore_run_exports:
         by_name:
-          - level-zero-devel
+          - level-zero
       run_exports:
         strong:
           - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
@@ -334,7 +335,7 @@ outputs:
         - python >=3.8
       ignore_run_exports:
         by_name:
-          - level-zero-devel
+          - level-zero
       run_constraints:
         # Block conda-forge clang-tools packages — binary conflicts on
         # bin/clang-format, bin/clang-tidy, bin/clangd, etc.
