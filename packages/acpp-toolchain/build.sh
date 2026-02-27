@@ -58,8 +58,12 @@ export CMAKE_PREFIX_PATH="${BUILD_DIR}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}
 if [ -f "${BUILD_DIR}/install/bin/acpp" ]; then
   cp -r "${BUILD_DIR}"/install/* "${PREFIX}"
 
-  mkdir -p "${PREFIX}/etc/conda/activation.d"
-  cp "${RECIPE_DIR}/acpp-libs-activate.sh" "${PREFIX}/etc/conda/activation.d"
+  mkdir -p "${PREFIX}/etc/conda/activate.d"
+  activation_script="${RECIPE_DIR}/acpp-libs-activate.sh"
+  if [ ! -f "$activation_script" ]; then
+    echo "Activation script doesn't exist in ${SRC_DIR}"
+  fi
+  cp "$activation_script" "${PREFIX}/etc/conda/activate.d"
 
   # Remove unversioned symlinks that would conflict with other conda packages
   rm -f "${PREFIX}/lib/libLLVM.so"
@@ -75,7 +79,7 @@ else
   # so it only runs once. The install step always runs so each output gets files
   # copied to its own $PREFIX correctly.
   cmake "${LLVM_SRC}/llvm" -GNinja \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/install" \
     \
     `# ── ccache: wrap compiler via launcher so conda triple-prefixed names work ──` \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -157,10 +161,10 @@ else
     -DCMAKE_MODULE_LINKER_FLAGS_INIT="-pthread"
 
   # ── Build ──────────────────────────────────────────────────────────────────
-  ninja -j"${CPU_COUNT}"
+  cmake --build . --parallel "${CPU_COUNT}"
 
   # ── Install ────────────────────────────────────────────────────────────────
-  cmake --install . --prefix "${BUILD_DIR}/install"
+  cmake --install .
 
   # ── No triple-named symlinks in the base package ─────────────────────────
   # conda-forge's base compiler packages do NOT install triple-prefixed symlinks.
