@@ -23,14 +23,14 @@ It is recommended that `acpp-libs` is the only package installed in the runtime 
 
 ## Installation
 
-Packages are available from the `jackhodgkiss` channel on [prefix.dev](https://prefix.dev).
+Packages are available from the `code-accelerate` channel on [prefix.dev](https://prefix.dev).
 
 ### Using pixi (recommended)
 
 ```toml
 # pixi.toml
 [project]
-channels = ["https://prefix.dev/codaaccelerate", "conda-forge"]
+channels = ["https://prefix.dev/code-accelerate", "conda-forge"]
 platforms = ["linux-64"]
 
 [dependencies]
@@ -43,7 +43,7 @@ pixi add acpp-toolchain
 ### Installing globally
 
 ```sh
-pixi global install -c "https://prefix.dev/codeaccelerate" acpp-toolchain
+pixi global install -c "https://prefix.dev/code-accelerate" acpp-toolchain
 ```
 
 ---
