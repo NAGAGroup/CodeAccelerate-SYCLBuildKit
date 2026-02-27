@@ -43,13 +43,12 @@ cache:
     host:
       - zlib # libz.so + headers at build time
       - zstd # libzstd.so + headers at build time
-      - libxml2-devel # headers ONLY (split package). Like clangdev, we
+      - libxml2 # headers ONLY (split package). Like clangdev, we
         # use ignore_run_exports_from to suppress the
         # automatic run dep injection — libxml2 is used
         # for static diagnostics code, not dlopen'd at runtime.
-      - boost-cpp # Boost headers needed by AdaptiveCpp (header-only)
+      - libboost-devel # Boost headers needed by AdaptiveCpp (header-only)
       - level-zero-devel # Level Zero headers for AdaptiveCpp SSCP backend
-      - ocl-icd # OpenCL ICD loader (needed at AdaptiveCpp build time)
       - opencl-headers # OpenCL headers for AdaptiveCpp SSCP backend
       - numactl
       - if: linux
@@ -57,7 +56,9 @@ cache:
           - cuda >=12,<13
           - hipcc >=6,<7
           - rocm-device-libs >=6,<7
-          - libllvm21
+          # Ensures hip/rocm doesnt pull in conflicting clang/llvm 20 packages during build
+          - clang >=19,<20
+          - clangxx >=19,<20
 
 outputs:
   # ── Output 1: shared libraries only ──────────────────────────────────────
@@ -83,17 +84,10 @@ outputs:
     requirements:
       run:
         - numactl
-        - level-zero
-        - ocl-icd
         - libstdcxx >=13
       ignore_run_exports:
         by_name:
-          - zlib
-          - zstd
-          - libxml2-devel
           - level-zero-devel
-          - ocl-icd
-          - opencl-headers
       run_exports:
         - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
       # Block all conda-forge clang/LLVM toolchain packages.
@@ -238,12 +232,7 @@ outputs:
         - libstdcxx-devel_linux-64 >=13
       ignore_run_exports:
         by_name:
-          - zlib
-          - zstd
-          - libxml2-devel
           - level-zero-devel
-          - ocl-icd
-          - opencl-headers
       run_exports:
         strong:
           - ${{ pin_subpackage('acpp-libs', upper_bound='x.x') }}
@@ -345,12 +334,7 @@ outputs:
         - python >=3.8
       ignore_run_exports:
         by_name:
-          - zlib
-          - zstd
-          - libxml2-devel
           - level-zero-devel
-          - ocl-icd
-          - opencl-headers
       run_constraints:
         # Block conda-forge clang-tools packages — binary conflicts on
         # bin/clang-format, bin/clang-tidy, bin/clangd, etc.
