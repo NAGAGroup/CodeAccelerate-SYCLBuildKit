@@ -35,6 +35,8 @@ cache:
       - ${{ compiler('cxx') }}
       - ${{ stdlib('c') }}
       - ${{ stdlib('cxx') }}
+      - cuda >=12,<13
+      - hipcc >=6,<7
       - cmake >=3.24
       - ninja
       - python >=3.8
@@ -51,14 +53,10 @@ cache:
       - level-zero-devel # Level Zero headers for AdaptiveCpp SSCP backend
       - opencl-headers # OpenCL headers for AdaptiveCpp SSCP backend
       - numactl
-      - if: linux
-        then:
-          - cuda >=12,<13
-          - hipcc >=6,<7
-          - rocm-device-libs >=6,<7
-          # Ensures hip/rocm doesnt pull in conflicting clang/llvm 20 packages during build
-          - clang >=19,<20
-          - clangxx >=19,<20
+      - rocm-device-libs >=6,<7
+      # Ensures hip/rocm doesnt pull in conflicting clang/llvm 20 packages during build
+      - clang >=19,<20
+      - clangxx >=19,<20
 
 outputs:
   # ── Output 1: shared libraries only ──────────────────────────────────────
